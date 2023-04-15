@@ -8,7 +8,7 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 
 public interface IRateLimiterGrain : IGrainWithStringKey
 {
-    ValueTask<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1);
+    Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1);
     ValueTask<RateLimiterStatistics?> GetStatisticsAsync();
     ValueTask ReleaseLease(Guid guid);
 }

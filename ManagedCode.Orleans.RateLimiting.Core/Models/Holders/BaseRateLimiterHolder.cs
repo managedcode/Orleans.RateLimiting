@@ -1,3 +1,4 @@
+using System;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
@@ -20,8 +21,15 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> where TGrain : IRat
 
     public async ValueTask<OrleansRateLimitLease> AcquireAsync(int permitCount = 1)
     {
-        var metadata = await Grain.AcquireAsync(permitCount);
-        return new OrleansRateLimitLease(metadata, _grainFactory);
+        try
+        {
+            var metadata = await Grain.AcquireAsync(permitCount);
+            return new OrleansRateLimitLease(metadata, _grainFactory);
+        }
+        catch (TimeoutException timeoutException)
+        {
+            return new OrleansRateLimitLease(new RateLimitLeaseMetadata(Grain.GetGrainId()), _grainFactory);
+        }
     }
 
     public ValueTask<RateLimiterStatistics?> GetStatisticsAsync()

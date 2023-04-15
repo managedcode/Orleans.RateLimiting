@@ -12,52 +12,59 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
 {
     private readonly GrainId _grainId;
     private readonly Guid _guid;
-    private readonly KeyValuePair<string, object?>[] _metadata;
+    private readonly Dictionary<string, string?> _metadata;
 
     public OrleansRateLimitLease(RateLimitLeaseMetadata metadata, IGrainFactory grainFactory)
     {
         _guid = metadata.LeaseId;
         _grainId = metadata.GrainId;
         IsAcquired = metadata.IsAcquired;
-        _metadata = metadata.Metadata;
+        _metadata = metadata.Metadata.ToDictionary(k => k.Key, v => v.Value?.ToString());
         GrainFactory = grainFactory;
     }
 
     public IGrainFactory GrainFactory { get; init; }
 
+    public string Reason => TryGetMetadata("REASON_PHRASE", out var reason) ? reason ?? string.Empty : string.Empty;
+
+    public TimeSpan RetryAfter => TryGetMetadata("RETRY_AFTER", out var reason)
+        ? TimeSpan.Parse(reason ?? TimeSpan.Zero.ToString())
+        : TimeSpan.Zero;
+
     public bool IsAcquired { get; init; }
+
     public IEnumerable<string> MetadataNames => _metadata.Select(s => s.Key);
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        return GrainFactory.GetGrain(_grainId).AsReference<IRateLimiterGrain>().ReleaseLease(_guid);
+        if (_guid == Guid.Empty)
+            return;
+
+        try
+        {
+            await GrainFactory.GetGrain(_grainId).AsReference<IRateLimiterGrain>().ReleaseLease(_guid);
+        }
+        catch (AggregateException ex) when (ex.InnerException is TimeoutException)
+        {
+            // ignore
+        }
     }
 
     public void Dispose()
     {
-        Task.WaitAll(GrainFactory.GetGrain(_grainId).AsReference<IRateLimiterGrain>().ReleaseLease(_guid).AsTask());
+        Task.WaitAll(DisposeAsync().AsTask());
     }
 
-    public virtual IEnumerable<KeyValuePair<string, object?>> GetAllMetadata()
-    {
-        foreach (var name in MetadataNames)
-            if (TryGetMetadata(name, out var metadata))
-                yield return new KeyValuePair<string, object?>(name, metadata);
-    }
-
-    public bool TryGetMetadata(string metadataName, out object? metadata)
+    public virtual IEnumerable<KeyValuePair<string, string?>> GetAllMetadata()
     {
         foreach (var pair in _metadata)
-        {
-            if (pair.Key == metadataName)
-            {
-                metadata = pair.Value;
-                return true;
-            }
-        }
- 
+            yield return pair;
+    }
 
-        metadata = null;
-        return false;
+    public bool TryGetMetadata(string metadataName, out string? metadata)
+    {
+        var result = _metadata.TryGetValue(metadataName, out var value);
+        metadata = value;
+        return result;
     }
 }

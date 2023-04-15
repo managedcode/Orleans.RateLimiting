@@ -27,22 +27,24 @@ public abstract class RateLimiterGrain<T> : Grain where T : RateLimiter
         set => _rateLimiter = value;
     }
 
-    public async ValueTask<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1)
+    public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1)
     {
         var guid = Guid.NewGuid();
 
-        var lease = await _rateLimiter.AcquireAsync(permitCount);
+        var lease = await Task.Run(async () => await _rateLimiter.AcquireAsync(permitCount));
         _rateLimitLeases.Add(guid, lease);
 
         var orleansLease = new RateLimitLeaseMetadata(guid, this.GetGrainId(), lease);
         return orleansLease;
     }
 
-    public ValueTask ReleaseLease(Guid guid)
+    public async ValueTask ReleaseLease(Guid guid)
     {
-        _rateLimitLeases.Remove(guid, out var lease);
-        lease?.Dispose();
-        return ValueTask.CompletedTask;
+        await Task.Run(() =>
+        {
+            _rateLimitLeases.Remove(guid, out var lease);
+            lease?.Dispose();
+        });
     }
 
     public ValueTask<RateLimiterStatistics?> GetStatisticsAsync()

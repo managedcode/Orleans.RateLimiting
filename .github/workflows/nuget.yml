@@ -23,8 +23,8 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release
-      #      - name: Test
-      #        run: dotnet test --configuration Release
+      - name: Test
+        run: dotnet test --configuration Release
       - name: Pack
         run: dotnet pack -p:IncludeSymbols=false -p:SymbolPackageFormat=snupkg --configuration Release
 
