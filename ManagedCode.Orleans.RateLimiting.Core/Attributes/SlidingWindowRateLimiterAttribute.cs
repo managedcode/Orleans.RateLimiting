@@ -15,8 +15,8 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
     /// </summary>
     /// <param name="keyType">What key to use to identify RateLimiting, can be overridden by setting key property</param>
     /// <param name="key">Custom string as key for RateLimiting</param>
-    /// <param name="window">
-    /// Specifies the time window that takes in the requests.
+    /// <param name="windowinSeconds">
+    /// Specifies the time window that takes in the requests in seconds.
     /// Must be set to a value greater than <see cref="TimeSpan.Zero" /> by the time these options are passed to the constructor of <see cref="SlidingWindowRateLimiter"/>.
     /// </param>
     /// <param name="permitLimit">
@@ -37,7 +37,7 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync"/> when not enough resources can be leased.</param>
     public SlidingWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
-        TimeSpan window = default,
+        int windowinSeconds = default,
         int permitLimit = default,
         int queueLimit = 0,
         int segmentsPerWindow = default,
@@ -54,8 +54,8 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
         }
         
         int? permitLimitNullable = permitLimit > 0 ? permitLimit : null;
-        int? segmentsPerWindowNullable = segmentsPerWindow >= 0 ? segmentsPerWindow : null;
-        TimeSpan? windowNullable = window > TimeSpan.Zero ? window : null;
+        int? segmentsPerWindowNullable = segmentsPerWindow > 0 ? segmentsPerWindow : null;
+        TimeSpan? windowNullable = windowinSeconds > 0 ? TimeSpan.FromSeconds(windowinSeconds) : null;
 
         
         if (permitLimitNullable.HasValue || windowNullable.HasValue || segmentsPerWindowNullable.HasValue)

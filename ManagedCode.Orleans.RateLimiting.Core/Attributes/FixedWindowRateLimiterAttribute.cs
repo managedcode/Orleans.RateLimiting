@@ -15,8 +15,8 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
     /// </summary>
     /// <param name="keyType">What key to use to identify RateLimiting, can be overridden by setting key property</param>
     /// <param name="key">Custom string as key for RateLimiting</param>
-    /// <param name="window">
-    /// Specifies the time window that takes in the requests.
+    /// <param name="windowInSeconds">
+    /// Specifies the time window that takes in the requests in seconds.
     /// Must be set to a value greater than <see cref="TimeSpan.Zero" /> by the time these options are passed to the constructor of <see cref="FixedWindowRateLimiter"/>.
     /// </param>
     /// <param name="permitLimit">
@@ -33,7 +33,7 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync"/> when not enough resources can be leased.</param>
     public FixedWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
-        TimeSpan window = default,
+        int windowInSeconds = default,
         int permitLimit = default,
         int queueLimit = 0,
         bool autoReplenishment = true,
@@ -49,7 +49,7 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
         }
         
         int? permitLimitNullable = permitLimit > 0 ? permitLimit : null;
-        TimeSpan? windowNullable = window > TimeSpan.Zero ? window : null;
+        TimeSpan? windowNullable = windowInSeconds > 0 ? TimeSpan.FromSeconds(windowInSeconds) : null;
         
         if (permitLimitNullable.HasValue || windowNullable.HasValue)
         {

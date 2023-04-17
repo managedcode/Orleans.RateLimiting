@@ -33,6 +33,51 @@ Install-Package anagedCode.Orleans.RateLimiting.Client
 // for Server
 Install-Package anagedCode.Orleans.RateLimiting.Server
 ```
+then add the following to your `SiloHostBuilder` or `ClientBuilder`:
+```csharp
+// for Client
+clientBuilder.AddOrleansRateLimiting();
+
+// for Server
+siloBuilder.AddOrleansRateLimiting();
+```
+
+Also if you would like to use incoming filter and **Attributes**, you have to add default options for Limiter:
+```csharp
+//Add default options and IncomingFilter
+siloBuilder.AddOrleansConcurrencyLimiter(options =>
+{
+    options.PermitLimit = 10;
+    options.QueueLimit = 15;
+});
+
+//Add default options and IncomingFilter
+siloBuilder.AddOrleansFixedWindowRateLimiter(options =>
+{
+    options.PermitLimit = 10;
+    options.QueueLimit = 15;
+    options.Window = TimeSpan.FromSeconds(1);
+});
+
+//Add default options and IncomingFilter
+siloBuilder.AddOrleansSlidingWindowRateLimiter(options =>
+{
+    options.PermitLimit = 10;
+    options.QueueLimit = 15;
+    options.Window = TimeSpan.FromSeconds(1);
+    options.SegmentsPerWindow = 2;
+
+});
+
+//Add default options and IncomingFilter
+siloBuilder.AddOrleansTokenBucketRateLimiter(options =>
+{
+    options.TokenLimit = 10;
+    options.QueueLimit = 15;
+    options.TokensPerPeriod = 2;
+    options.ReplenishmentPeriod = TimeSpan.FromSeconds(1);
+});
+```
 
 ## Usage
 
@@ -87,6 +132,37 @@ var slidingWindowRateLimiter = _factory.GetSlidingWindowRateLimiter("key");
 
 ```csharp
 var tokenBucketRateLimiter = _factory.GetTokenBucketRateLimiter("key");
+```
+
+### Attrubutes
+
+You can use attributes to decorate your grain methods and apply rate limiting to them.
+Make sure you check configuration section for default options.
+
+```csharp
+public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimiterGrain
+{
+    [FixedWindowRateLimiter] //GrainId as key, default options
+    public async Task<string> Do()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        return "Do";
+    }
+
+    [FixedWindowRateLimiter(KeyType.Key, "go")] //String as Key, default options
+    public async Task<string> Go()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        return "Go";
+    }
+
+    [FixedWindowRateLimiter(KeyType.GrainType, permitLimit:2, queueLimit:1)] //GrainType as Key, custom options, some of them are default (check Attribute)
+    public async Task<string> Take()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        return "Take";
+    }
+}
 ```
 
 ## Contributing

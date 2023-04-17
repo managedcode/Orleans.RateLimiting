@@ -6,21 +6,21 @@ namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains
 {
     public class TestConcurrencyLimiterGrain : Grain, ITestConcurrencyLimiterGrain
     {
-        [ConcurrencyLimiter] //GrainId, default options  PermitLimit = 10; QueueLimit = 15;
+        [ConcurrencyLimiter]  //GrainId as key, default options
         public async Task<string> Do()
         {
             await Task.Delay(TimeSpan.FromSeconds(5));
             return "Do";
         }
 
-        [ConcurrencyLimiter(KeyType.Key, "go")] //Key, default options PermitLimit = 10; QueueLimit = 15;
+        [ConcurrencyLimiter(KeyType.Key, "go")] //String as Key, default options
         public async Task<string> Go()
         {
             await Task.Delay(TimeSpan.FromSeconds(5));
             return "Go";
         }
 
-        [ConcurrencyLimiter(KeyType.GrainType, permitLimit:2, queueLimit:1)] 
+        [ConcurrencyLimiter(KeyType.GrainType, permitLimit:2, queueLimit:1)] //GrainType as Key, custom options, some of them are default (check Attribute)
         public async Task<string> Take()
         {
             await Task.Delay(TimeSpan.FromSeconds(5));

@@ -15,8 +15,8 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
     /// </summary>
     /// <param name="keyType">What key to use to identify RateLimiting, can be overridden by setting key property</param>
     /// <param name="key">Custom string as key for RateLimiting</param>
-    /// <param name="replenishmentPeriod">
-    /// Specifies the minimum period between replenishments.
+    /// <param name="replenishmentPeriodInSeconds">
+    /// Specifies the minimum period between replenishments in seconds.
     /// Must be set to a value greater than <see cref="TimeSpan.Zero" /> by the time these options are passed to the constructor of <see cref="TokenBucketRateLimiter"/>.
     /// </param>
     /// <param name="tokensPerPeriod">
@@ -37,7 +37,7 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync"/> when not enough resources can be leased.</param>
     public TokenBucketRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
-        TimeSpan replenishmentPeriod = default,
+        int replenishmentPeriodInSeconds = default,
         int tokensPerPeriod = default,
         int queueLimit = 0,
         int tokenLimit = default,
@@ -54,8 +54,8 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
         }
         
         int? tokensPerPeriodNullable = tokensPerPeriod > 0 ? tokensPerPeriod : null;
-        int? tokenLimitNullable = tokenLimit >= 0 ? tokenLimit : null;
-        TimeSpan? replenishmentPeriodNullable  = replenishmentPeriod > TimeSpan.Zero ? replenishmentPeriod : null;
+        int? tokenLimitNullable = tokenLimit > 0 ? tokenLimit : null;
+        TimeSpan? replenishmentPeriodNullable  = replenishmentPeriodInSeconds > 0 ? TimeSpan.FromSeconds(replenishmentPeriodInSeconds) : null;
         
         if (tokensPerPeriodNullable.HasValue || tokenLimitNullable.HasValue || replenishmentPeriodNullable.HasValue)
         {
