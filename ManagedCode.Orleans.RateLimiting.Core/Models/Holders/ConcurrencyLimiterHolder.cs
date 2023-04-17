@@ -11,9 +11,5 @@ public class ConcurrencyLimiterHolder : BaseRateLimiterHolder<IConcurrencyLimite
         grainFactory)
     {
     }
-
-    public override ValueTask Configure(ConcurrencyLimiterOptions options)
-    {
-        return Grain.ConfigureAsync(options);
-    }
+    
 }

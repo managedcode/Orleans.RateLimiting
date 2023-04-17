@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 
-public interface IConcurrencyLimiterGrain : IRateLimiterGrain
+public interface IConcurrencyLimiterGrain : IRateLimiterGrainWithConfiguration<ConcurrencyLimiterOptions>
 {
-    ValueTask ConfigureAsync(ConcurrencyLimiterOptions options);
 }

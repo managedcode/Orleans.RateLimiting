@@ -3,8 +3,7 @@ using System.Threading.Tasks;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 
-public interface ISlidingWindowRateLimiterGrain : IRateLimiterGrain
+public interface ISlidingWindowRateLimiterGrain : IRateLimiterGrainWithConfiguration<SlidingWindowRateLimiterOptions>
 {
-    ValueTask ConfigureAsync(SlidingWindowRateLimiterOptions options);
     ValueTask<bool> TryReplenishAsync();
 }

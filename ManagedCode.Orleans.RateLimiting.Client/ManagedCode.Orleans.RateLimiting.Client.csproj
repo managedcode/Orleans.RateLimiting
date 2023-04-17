@@ -18,18 +18,18 @@
 
     <ItemGroup>
 
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0"/>
-        <PackageReference Include="Microsoft.Orleans.Client" Version="7.1.1"/>
-        <PackageReference Include="System.Threading.RateLimiting" Version="7.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Orleans.Client" Version="7.1.1" />
+        <PackageReference Include="System.Threading.RateLimiting" Version="7.0.0" />
 
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Core\ManagedCode.Orleans.RateLimiting.Core.csproj"/>
+        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Core\ManagedCode.Orleans.RateLimiting.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Middlewares\"/>
+        <Folder Include="Middlewares\" />
     </ItemGroup>
 
 </Project>

@@ -3,8 +3,7 @@ using System.Threading.Tasks;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 
-public interface ITokenBucketRateLimiterGrain : IRateLimiterGrain
+public interface ITokenBucketRateLimiterGrain : IRateLimiterGrainWithConfiguration<TokenBucketRateLimiterOptions>
 {
-    ValueTask ConfigureAsync(TokenBucketRateLimiterOptions options);
     ValueTask<bool> TryReplenishAsync();
 }

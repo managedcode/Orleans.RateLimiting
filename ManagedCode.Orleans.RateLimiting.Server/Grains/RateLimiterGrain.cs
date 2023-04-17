@@ -10,28 +10,28 @@ using Orleans.Concurrency;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
-public abstract class RateLimiterGrain<T> : Grain where T : RateLimiter
+public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimiter : RateLimiter
 {
     protected readonly ILogger _logger;
     private readonly Dictionary<Guid, RateLimitLease> _rateLimitLeases = new();
-    private RateLimiter _rateLimiter;
+    protected TOptions Options;
 
-    protected RateLimiterGrain(ILogger logger)
+    protected RateLimiterGrain(ILogger logger, TOptions options)
     {
         _logger = logger;
+        Options = options;
+        RateLimiter = CreateDefaultRateLimiter();
     }
 
-    protected T RateLimiter
-    {
-        get => (T)_rateLimiter;
-        set => _rateLimiter = value;
-    }
+    protected TLimiter RateLimiter { get; set; }
 
+    protected abstract TLimiter CreateDefaultRateLimiter();
+    
     public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1)
     {
         var guid = Guid.NewGuid();
 
-        var lease = await Task.Run(async () => await _rateLimiter.AcquireAsync(permitCount));
+        var lease = await Task.Run(async () => await RateLimiter.AcquireAsync(permitCount));
         _rateLimitLeases.Add(guid, lease);
 
         var orleansLease = new RateLimitLeaseMetadata(guid, this.GetGrainId(), lease);
@@ -49,6 +49,19 @@ public abstract class RateLimiterGrain<T> : Grain where T : RateLimiter
 
     public ValueTask<RateLimiterStatistics?> GetStatisticsAsync()
     {
-        return ValueTask.FromResult(_rateLimiter.GetStatistics());
+        return ValueTask.FromResult(RateLimiter.GetStatistics());
+    }
+
+    public ValueTask ConfigureAsync(TOptions options)
+    {
+        Options = options;
+        RateLimiter = CreateDefaultRateLimiter();
+        _logger.LogInformation($"Configured {nameof(SlidingWindowRateLimiter)} with id:{this.GetPrimaryKeyString()}");
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<TOptions> GetConfiguration()
+    {
+        return ValueTask.FromResult(Options);
     }
 }

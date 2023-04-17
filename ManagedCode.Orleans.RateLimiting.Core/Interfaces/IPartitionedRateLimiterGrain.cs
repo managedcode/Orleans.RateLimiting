@@ -1,6 +1,6 @@
 namespace ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 
-public interface IPartitionedRateLimiterGrain : IRateLimiterGrain
-{
-    //ValueTask ConfigureAsync(PartitionedRateLimiter options);
-}
+// public interface IPartitionedRateLimiterGrain : IRateLimiterGrain<PartitionedRateLimiter>
+// {
+//     //ValueTask ConfigureAsync(PartitionedRateLimiter options);
+// }

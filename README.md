@@ -1,10 +1,13 @@
 # Orleans.RateLimiting
 
-Orleans.RateLimiting is a library for Microsoft Orleans that provides a set of rate limiting algorithms for controlling the flow of requests in your distributed applications. 
-It is designed to be easy to use and to integrate with your Orleans-based applications seamlessly. 
-With Orleans.RateLimiting, you can ensure your applications handle a safe number of requests without the risk of overloading your system resources.
-RateLimiting on [learn.microsoft.com](https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0) and [devblogs.microsoft.com](https://devblogs.microsoft.com/dotnet/announcing-rate-limiting-for-dotnet/)
-
+Orleans.RateLimiting is a library for Microsoft Orleans that provides a set of rate limiting algorithms for controlling
+the flow of requests in your distributed applications.
+It is designed to be easy to use and to integrate with your Orleans-based applications seamlessly.
+With Orleans.RateLimiting, you can ensure your applications handle a safe number of requests without the risk of
+overloading your system resources.
+RateLimiting
+on [learn.microsoft.com](https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0)
+and [devblogs.microsoft.com](https://devblogs.microsoft.com/dotnet/announcing-rate-limiting-for-dotnet/)
 
 ## Features
 
@@ -88,5 +91,6 @@ var tokenBucketRateLimiter = _factory.GetTokenBucketRateLimiter("key");
 
 ## Contributing
 
-We welcome contributions to Orleans.RateLimiting! 
-Feel free to submit issues, feature requests, and pull requests on the [GitHub repository](https://github.com/yourusername/Orleans.RateLimiter).
+We welcome contributions to Orleans.RateLimiting!
+Feel free to submit issues, feature requests, and pull requests on
+the [GitHub repository](https://github.com/yourusername/Orleans.RateLimiter).

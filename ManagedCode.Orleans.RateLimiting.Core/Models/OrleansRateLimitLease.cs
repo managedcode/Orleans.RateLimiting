@@ -25,7 +25,9 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
 
     public IGrainFactory GrainFactory { get; init; }
 
-    public string Reason => TryGetMetadata("REASON_PHRASE", out var reason) ? reason ?? string.Empty : string.Empty;
+    public string Reason => TryGetMetadata("REASON_PHRASE", out var reason)
+        ? reason ?? string.Empty
+        : "Rate limit exceeded";
 
     public TimeSpan RetryAfter => TryGetMetadata("RETRY_AFTER", out var reason)
         ? TimeSpan.Parse(reason ?? TimeSpan.Zero.ToString())
