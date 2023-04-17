@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
@@ -8,6 +9,7 @@ using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Models;
 
+[DebuggerDisplay("IsAcquired = {IsAcquired}")]
 public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
 {
     private readonly GrainId _grainId;

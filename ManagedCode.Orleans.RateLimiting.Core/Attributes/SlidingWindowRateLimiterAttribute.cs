@@ -39,7 +39,7 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
     public SlidingWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
         TimeSpan window = default,
         int permitLimit = default,
-        int queueLimit = default,
+        int queueLimit = 0,
         int segmentsPerWindow = default,
         bool autoReplenishment = true,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
@@ -54,18 +54,17 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
         }
         
         int? permitLimitNullable = permitLimit > 0 ? permitLimit : null;
-        int? queueLimitNullable = queueLimit >= 0 ? queueLimit : null;
         int? segmentsPerWindowNullable = segmentsPerWindow >= 0 ? segmentsPerWindow : null;
         TimeSpan? windowNullable = window > TimeSpan.Zero ? window : null;
 
         
-        if (permitLimitNullable.HasValue || queueLimitNullable.HasValue || windowNullable.HasValue || segmentsPerWindowNullable.HasValue)
+        if (permitLimitNullable.HasValue || windowNullable.HasValue || segmentsPerWindowNullable.HasValue)
         {
             Options = new SlidingWindowRateLimiterOptions()
             {
                 Window = windowNullable ?? TimeSpan.FromSeconds(1),
                 PermitLimit = permitLimitNullable ?? 1,
-                QueueLimit = queueLimitNullable ?? 1,
+                QueueLimit = queueLimit,
                 SegmentsPerWindow = segmentsPerWindowNullable ?? 1,
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder

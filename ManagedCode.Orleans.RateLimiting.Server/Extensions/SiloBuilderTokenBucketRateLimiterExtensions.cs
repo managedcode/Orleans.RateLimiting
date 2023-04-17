@@ -9,18 +9,10 @@ namespace ManagedCode.Orleans.RateLimiting.Server.Extensions;
 public static class SiloBuilderTokenBucketRateLimiterExtensions
 {
     public static ISiloBuilder AddOrleansTokenBucketRateLimiter(this ISiloBuilder siloBuilder,
-        TokenBucketRateLimiterOptions defaultOptions)
-    {
-        siloBuilder.Services.AddSingleton(defaultOptions);
-        siloBuilder.AddIncomingGrainCallFilter<TokenBucketRateLimiterIncomingFilter>();
-        return siloBuilder;
-    }
-
-    public static ISiloBuilder AddOrleansTokenBucketRateLimiter(this ISiloBuilder siloBuilder,
         Action<TokenBucketRateLimiterOptions> defaultOptions)
     {
-        var fixedWindowRateLimiterOptions = new TokenBucketRateLimiterOptions();
-        defaultOptions.Invoke(fixedWindowRateLimiterOptions);
-        return siloBuilder.AddOrleansTokenBucketRateLimiter(fixedWindowRateLimiterOptions);
+        siloBuilder.Services.AddOptions<TokenBucketRateLimiterOptions>().Configure(defaultOptions.Invoke);
+        siloBuilder.AddIncomingGrainCallFilter<TokenBucketRateLimiterIncomingFilter>();
+        return siloBuilder;
     }
 }

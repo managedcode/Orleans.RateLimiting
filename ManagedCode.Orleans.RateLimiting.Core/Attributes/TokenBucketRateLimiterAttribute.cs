@@ -39,7 +39,7 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
     public TokenBucketRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
         TimeSpan replenishmentPeriod = default,
         int tokensPerPeriod = default,
-        int queueLimit = default,
+        int queueLimit = 0,
         int tokenLimit = default,
         bool autoReplenishment = true,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
@@ -54,17 +54,16 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
         }
         
         int? tokensPerPeriodNullable = tokensPerPeriod > 0 ? tokensPerPeriod : null;
-        int? queueLimitNullable = queueLimit >= 0 ? queueLimit : null;
         int? tokenLimitNullable = tokenLimit >= 0 ? tokenLimit : null;
         TimeSpan? replenishmentPeriodNullable  = replenishmentPeriod > TimeSpan.Zero ? replenishmentPeriod : null;
         
-        if (tokensPerPeriodNullable.HasValue || queueLimitNullable.HasValue || tokenLimitNullable.HasValue || replenishmentPeriodNullable.HasValue)
+        if (tokensPerPeriodNullable.HasValue || tokenLimitNullable.HasValue || replenishmentPeriodNullable.HasValue)
         {
             Options = new TokenBucketRateLimiterOptions()
             {
                 ReplenishmentPeriod = replenishmentPeriodNullable ?? TimeSpan.FromSeconds(1),
                 TokensPerPeriod = tokensPerPeriodNullable ?? 1,
-                QueueLimit = queueLimitNullable ?? 1,
+                QueueLimit = queueLimit,
                 TokenLimit = tokenLimitNullable ?? 1,
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder

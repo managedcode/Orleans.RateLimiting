@@ -26,7 +26,7 @@ public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<Concurre
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync"/> when not enough resources can be leased.</param>
     public ConcurrencyLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
         int permitLimit = default,
-        int queueLimit = default,
+        int queueLimit = 0,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
         Key = key;
@@ -39,14 +39,13 @@ public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<Concurre
         }
         
         int? permitLimitNullable = permitLimit > 0 ? permitLimit : null;
-        int? queueLimitNullable = queueLimit >= 0 ? queueLimit : null;
         
-        if (permitLimitNullable.HasValue || queueLimitNullable.HasValue)
+        if (permitLimitNullable.HasValue)
         {
             Options = new ConcurrencyLimiterOptions()
             {
                 PermitLimit = permitLimitNullable ?? 1,
-                QueueLimit = queueLimitNullable ?? 1,
+                QueueLimit = queueLimit,
                 QueueProcessingOrder = queueProcessingOrder
             };
         }

@@ -35,7 +35,7 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
     public FixedWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
         TimeSpan window = default,
         int permitLimit = default,
-        int queueLimit = default,
+        int queueLimit = 0,
         bool autoReplenishment = true,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
@@ -49,16 +49,15 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
         }
         
         int? permitLimitNullable = permitLimit > 0 ? permitLimit : null;
-        int? queueLimitNullable = queueLimit >= 0 ? queueLimit : null;
         TimeSpan? windowNullable = window > TimeSpan.Zero ? window : null;
         
-        if (permitLimitNullable.HasValue || queueLimitNullable.HasValue || windowNullable.HasValue)
+        if (permitLimitNullable.HasValue || windowNullable.HasValue)
         {
             Options = new FixedWindowRateLimiterOptions()
             {
                 Window = windowNullable ?? TimeSpan.FromSeconds(1),
                 PermitLimit = permitLimitNullable ?? 1,
-                QueueLimit = queueLimitNullable ?? 1,
+                QueueLimit = queueLimit,
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder
             };

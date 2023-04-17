@@ -9,18 +9,10 @@ namespace ManagedCode.Orleans.RateLimiting.Server.Extensions;
 public static class SiloBuilderSlidingWindowRateLimiterExtensions
 {
     public static ISiloBuilder AddOrleansSlidingWindowRateLimiter(this ISiloBuilder siloBuilder,
-        SlidingWindowRateLimiterOptions defaultOptions)
-    {
-        siloBuilder.Services.AddSingleton(defaultOptions);
-        siloBuilder.AddIncomingGrainCallFilter<SlidingWindowRateLimiterIncomingFilter>();
-        return siloBuilder;
-    }
-
-    public static ISiloBuilder AddOrleansSlidingWindowRateLimiter(this ISiloBuilder siloBuilder,
         Action<SlidingWindowRateLimiterOptions> defaultOptions)
     {
-        var fixedWindowRateLimiterOptions = new SlidingWindowRateLimiterOptions();
-        defaultOptions.Invoke(fixedWindowRateLimiterOptions);
-        return siloBuilder.AddOrleansSlidingWindowRateLimiter(fixedWindowRateLimiterOptions);
+        siloBuilder.Services.AddOptions<SlidingWindowRateLimiterOptions>().Configure(defaultOptions.Invoke);
+        siloBuilder.AddIncomingGrainCallFilter<SlidingWindowRateLimiterIncomingFilter>();
+        return siloBuilder;
     }
 }
