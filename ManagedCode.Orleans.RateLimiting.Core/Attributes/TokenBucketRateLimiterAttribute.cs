@@ -36,11 +36,11 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
     /// Must be set to a value > 0 by the time these options are passed to the constructor of <see cref="TokenBucketRateLimiter"/>.
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync"/> when not enough resources can be leased.</param>
-    public TokenBucketRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string? key = null, 
-        TimeSpan? replenishmentPeriod = null,
-        int? tokensPerPeriod = null,
-        int? queueLimit = null,
-        int? tokenLimit = null,
+    public TokenBucketRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
+        TimeSpan replenishmentPeriod = default,
+        int tokensPerPeriod = default,
+        int queueLimit = default,
+        int tokenLimit = default,
         bool autoReplenishment = true,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
@@ -53,14 +53,19 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
             KeyType = KeyType.Key;
         }
         
-        if (tokensPerPeriod.HasValue || queueLimit.HasValue || replenishmentPeriod.HasValue || tokenLimit.HasValue)
+        int? tokensPerPeriodNullable = tokensPerPeriod > 0 ? tokensPerPeriod : null;
+        int? queueLimitNullable = queueLimit >= 0 ? queueLimit : null;
+        int? tokenLimitNullable = tokenLimit >= 0 ? tokenLimit : null;
+        TimeSpan? replenishmentPeriodNullable  = replenishmentPeriod > TimeSpan.Zero ? replenishmentPeriod : null;
+        
+        if (tokensPerPeriodNullable.HasValue || queueLimitNullable.HasValue || tokenLimitNullable.HasValue || replenishmentPeriodNullable.HasValue)
         {
             Options = new TokenBucketRateLimiterOptions()
             {
-                ReplenishmentPeriod = replenishmentPeriod ?? TimeSpan.FromSeconds(1),
-                TokensPerPeriod = tokensPerPeriod ?? 1,
-                QueueLimit = queueLimit ?? 1,
-                TokenLimit = tokenLimit ?? 1,
+                ReplenishmentPeriod = replenishmentPeriodNullable ?? TimeSpan.FromSeconds(1),
+                TokensPerPeriod = tokensPerPeriodNullable ?? 1,
+                QueueLimit = queueLimitNullable ?? 1,
+                TokenLimit = tokenLimitNullable ?? 1,
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder
             };

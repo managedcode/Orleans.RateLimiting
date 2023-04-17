@@ -24,9 +24,9 @@ public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<Concurre
     /// Must be set to a value >= 0 by the time these options are passed to the constructor of <see cref="ConcurrencyLimiter"/>.
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync"/> when not enough resources can be leased.</param>
-    public ConcurrencyLimiterAttribute(KeyType keyType = KeyType.GrainId, string? key = null, 
-        int? permitLimit = null,
-        int? queueLimit = null,
+    public ConcurrencyLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
+        int permitLimit = default,
+        int queueLimit = default,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
         Key = key;
@@ -38,12 +38,15 @@ public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<Concurre
             KeyType = KeyType.Key;
         }
         
-        if (permitLimit.HasValue || queueLimit.HasValue)
+        int? permitLimitNullable = permitLimit > 0 ? permitLimit : null;
+        int? queueLimitNullable = queueLimit >= 0 ? queueLimit : null;
+        
+        if (permitLimitNullable.HasValue || queueLimitNullable.HasValue)
         {
             Options = new ConcurrencyLimiterOptions()
             {
-                PermitLimit = permitLimit ?? 1,
-                QueueLimit = queueLimit ?? 1,
+                PermitLimit = permitLimitNullable ?? 1,
+                QueueLimit = queueLimitNullable ?? 1,
                 QueueProcessingOrder = queueProcessingOrder
             };
         }

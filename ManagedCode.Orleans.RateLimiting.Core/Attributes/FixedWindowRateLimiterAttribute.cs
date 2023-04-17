@@ -32,10 +32,10 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
     /// Must be set to a value > 0 by the time these options are passed to the constructor of <see cref="FixedWindowRateLimiter"/>.
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync"/> when not enough resources can be leased.</param>
-    public FixedWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string? key = null, 
-        TimeSpan? window = null,
-        int? permitLimit = null,
-        int? queueLimit = null,
+    public FixedWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, 
+        TimeSpan window = default,
+        int permitLimit = default,
+        int queueLimit = default,
         bool autoReplenishment = true,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
@@ -48,13 +48,17 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
             KeyType = KeyType.Key;
         }
         
-        if (permitLimit.HasValue || queueLimit.HasValue || window.HasValue)
+        int? permitLimitNullable = permitLimit > 0 ? permitLimit : null;
+        int? queueLimitNullable = queueLimit >= 0 ? queueLimit : null;
+        TimeSpan? windowNullable = window > TimeSpan.Zero ? window : null;
+        
+        if (permitLimitNullable.HasValue || queueLimitNullable.HasValue || windowNullable.HasValue)
         {
             Options = new FixedWindowRateLimiterOptions()
             {
-                Window = window ?? TimeSpan.FromSeconds(1),
-                PermitLimit = permitLimit ?? 1,
-                QueueLimit = queueLimit ?? 1,
+                Window = windowNullable ?? TimeSpan.FromSeconds(1),
+                PermitLimit = permitLimitNullable ?? 1,
+                QueueLimit = queueLimitNullable ?? 1,
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder
             };

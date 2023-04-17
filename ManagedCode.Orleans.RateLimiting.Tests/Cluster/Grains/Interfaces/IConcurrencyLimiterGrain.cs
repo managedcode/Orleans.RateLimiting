@@ -1,6 +1,6 @@
 ﻿namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces
 {
-    public interface IFirstLimitingGrain : IGrainWithStringKey
+    public interface IConcurrencyLimiterGrain : IGrainWithStringKey
     {
         Task<string> Do();
         Task<string> Go();
