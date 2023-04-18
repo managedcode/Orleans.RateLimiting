@@ -8,12 +8,12 @@ using Xunit.Abstractions;
 namespace ManagedCode.Orleans.RateLimiting.Tests;
 
 [Collection(nameof(TestClusterApplication))]
-public class SomeTest
+public class SignalRTests
 {
     private readonly ITestOutputHelper _outputHelper;
     private readonly TestClusterApplication _testApp;
 
-    public SomeTest(TestClusterApplication testApp, ITestOutputHelper outputHelper)
+    public SignalRTests(TestClusterApplication testApp, ITestOutputHelper outputHelper)
     {
         _testApp = testApp;
         _outputHelper = outputHelper;
@@ -21,7 +21,7 @@ public class SomeTest
 
 
     [Fact]
-    public async Task OneSignalR()
+    public async Task Some()
     {
         var anonymousHub = _testApp.CreateSignalRClient(nameof(TestAnonymousHub));
         await anonymousHub.StartAsync();

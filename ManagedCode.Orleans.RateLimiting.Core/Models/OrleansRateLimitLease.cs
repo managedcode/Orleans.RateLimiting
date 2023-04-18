@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using ManagedCode.Orleans.RateLimiting.Core.Exceptions;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using Orleans;
 using Orleans.Runtime;
@@ -48,15 +50,25 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
         {
             await GrainFactory.GetGrain(_grainId).AsReference<IRateLimiterGrain>().ReleaseLease(_guid);
         }
+        catch (TimeoutException)
+        {
+            //ignore
+        }
         catch (AggregateException ex) when (ex.InnerException is TimeoutException)
         {
             // ignore
         }
     }
 
+    public void ThrowIfNotAcquired([CallerMemberName] string? caller = null, [CallerLineNumber] int? lineNumber = null, [CallerFilePath] string? filePath = null)
+    {
+        if (!IsAcquired)
+            throw new RateLimitExceededException(Reason, RetryAfter);
+    }
+    
     public void Dispose()
     {
-        Task.WaitAll(DisposeAsync().AsTask());
+        _ = DisposeAsync();
     }
 
     public virtual IEnumerable<KeyValuePair<string, string?>> GetAllMetadata()

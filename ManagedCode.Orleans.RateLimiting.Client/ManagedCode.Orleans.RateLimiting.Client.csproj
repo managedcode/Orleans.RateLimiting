@@ -28,8 +28,4 @@
         <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Core\ManagedCode.Orleans.RateLimiting.Core.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Folder Include="Middlewares\" />
-    </ItemGroup>
-
 </Project>
