@@ -26,12 +26,12 @@ You can install Orleans.RateLimiting via NuGet Package Manager:
 
 ```sh
 // for Client
-Install-Package anagedCode.Orleans.RateLimiting.Client
+Install-Package ManagedCode.Orleans.RateLimiting.Client
 ```
 
 ```sh
 // for Server
-Install-Package anagedCode.Orleans.RateLimiting.Server
+Install-Package ManagedCode.Orleans.RateLimiting.Server
 ```
 then add the following to your `SiloHostBuilder` or `ClientBuilder`:
 ```csharp
