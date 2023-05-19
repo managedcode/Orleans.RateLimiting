@@ -23,11 +23,8 @@ public class SignalRTests
     [Fact]
     public async Task Some()
     {
-        var anonymousHub = _testApp.CreateSignalRClient(nameof(TestAnonymousHub));
+        var anonymousHub = _testApp.CreateSignalRClient(nameof(TestHub));
         await anonymousHub.StartAsync();
         anonymousHub.State.Should().Be(HubConnectionState.Connected);
-
-        var authorizeHub = _testApp.CreateSignalRClient(nameof(TestAuthorizeHub));
-        await Assert.ThrowsAsync<HttpRequestException>(() => authorizeHub.StartAsync());
     }
 }

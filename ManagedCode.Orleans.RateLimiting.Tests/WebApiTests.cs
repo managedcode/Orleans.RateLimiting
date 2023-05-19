@@ -21,5 +21,7 @@ public class WebApiTests
     public async Task Some()
     {
         var client = _testApp.CreateClient();
+        var response = await client.GetAsync("/test/authorize");
+        response.EnsureSuccessStatusCode();
     }
 }

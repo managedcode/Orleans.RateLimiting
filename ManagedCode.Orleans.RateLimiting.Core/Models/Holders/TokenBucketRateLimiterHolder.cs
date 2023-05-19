@@ -11,4 +11,9 @@ public class TokenBucketRateLimiterHolder : BaseRateLimiterHolder<ITokenBucketRa
     {
     }
     
+    public TokenBucketRateLimiterHolder(ITokenBucketRateLimiterGrain grain, IGrainFactory grainFactory, TokenBucketRateLimiterOptions options) : base(grain,
+        grainFactory, options)
+    {
+    }
+    
 }

@@ -6,6 +6,7 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Attributes;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<ConcurrencyLimiterOptions>
 {
+    public string? ConfigurationName { get; }
     public string? Key { get; }
     public KeyType KeyType { get; }
     public ConcurrencyLimiterOptions? Options { get; }
@@ -48,6 +49,19 @@ public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<Concurre
                 QueueLimit = queueLimit,
                 QueueProcessingOrder = queueProcessingOrder
             };
+        }
+    }
+
+    public ConcurrencyLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    {
+        ConfigurationName = configurationName;
+        Key = key;
+        KeyType = keyType;
+        
+        //override keyType if key is set
+        if (!string.IsNullOrEmpty(key))
+        {
+            KeyType = KeyType.Key;
         }
     }
 }

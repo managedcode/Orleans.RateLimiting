@@ -12,4 +12,9 @@ public class ConcurrencyLimiterHolder : BaseRateLimiterHolder<IConcurrencyLimite
     {
     }
     
+    public ConcurrencyLimiterHolder(IConcurrencyLimiterGrain grain, IGrainFactory grainFactory, ConcurrencyLimiterOptions options) : base(grain,
+        grainFactory, options)
+    {
+    }
+    
 }

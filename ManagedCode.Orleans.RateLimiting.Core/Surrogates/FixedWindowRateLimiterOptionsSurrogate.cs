@@ -4,6 +4,7 @@ using Orleans;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Surrogates;
 
+[Immutable]
 [GenerateSerializer]
 public struct FixedWindowRateLimiterOptionsSurrogate
 {
@@ -14,17 +15,15 @@ public struct FixedWindowRateLimiterOptionsSurrogate
     }
 
     [Id(0)]
-    public TimeSpan Window { get; set; } = TimeSpan.Zero;
+    public TimeSpan Window = TimeSpan.Zero;
 
     [Id(1)]
-    public bool AutoReplenishment { get; set; } = true;
+    public bool AutoReplenishment = true;
 
-    [Id(2)]
-    public int PermitLimit { get; set; }
+    [Id(2)] public int PermitLimit;
 
     [Id(3)]
-    public QueueProcessingOrder QueueProcessingOrder { get; set; } = QueueProcessingOrder.OldestFirst;
+    public QueueProcessingOrder QueueProcessingOrder  = QueueProcessingOrder.OldestFirst;
 
-    [Id(4)]
-    public int QueueLimit { get; set; }
+    [Id(4)] public int QueueLimit;
 }

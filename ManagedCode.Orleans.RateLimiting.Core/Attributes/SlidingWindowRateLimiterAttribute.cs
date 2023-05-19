@@ -6,6 +6,7 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Attributes;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<SlidingWindowRateLimiterOptions>
 {
+    public string? ConfigurationName { get; }
     public string? Key { get; }
     public KeyType KeyType { get; }
     public SlidingWindowRateLimiterOptions? Options { get; }
@@ -69,6 +70,19 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder
             };
+        }
+    }
+    
+    public SlidingWindowRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    {
+        ConfigurationName = configurationName;
+        Key = key;
+        KeyType = keyType;
+        
+        //override keyType if key is set
+        if (!string.IsNullOrEmpty(key))
+        {
+            KeyType = KeyType.Key;
         }
     }
 }

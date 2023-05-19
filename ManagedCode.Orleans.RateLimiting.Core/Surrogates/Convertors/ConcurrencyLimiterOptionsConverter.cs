@@ -4,8 +4,7 @@ using Orleans;
 namespace ManagedCode.Orleans.RateLimiting.Core.Surrogates.Convertors;
 
 [RegisterConverter]
-public sealed class
-    ConcurrencyLimiterOptionsConverter : IConverter<ConcurrencyLimiterOptions, ConcurrencyLimiterOptionsSurrogate>
+public sealed class ConcurrencyLimiterOptionsConverter : IConverter<ConcurrencyLimiterOptions, ConcurrencyLimiterOptionsSurrogate>
 {
     public ConcurrencyLimiterOptions ConvertFromSurrogate(in ConcurrencyLimiterOptionsSurrogate surrogate)
     {

@@ -6,6 +6,7 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Attributes;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<FixedWindowRateLimiterOptions>
 {
+    public string? ConfigurationName { get; }
     public string? Key { get; }
     public KeyType KeyType { get; }
     public FixedWindowRateLimiterOptions? Options { get; }
@@ -61,6 +62,19 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder
             };
+        }
+    }
+    
+    public FixedWindowRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    {
+        ConfigurationName = configurationName;
+        Key = key;
+        KeyType = keyType;
+        
+        //override keyType if key is set
+        if (!string.IsNullOrEmpty(key))
+        {
+            KeyType = KeyType.Key;
         }
     }
 }

@@ -25,4 +25,11 @@ public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimite
         await Task.Delay(TimeSpan.FromSeconds(5));
         return "Take";
     }
+    
+    [FixedWindowRateLimiter("FixedWindowRateLimiterOptions1", KeyType.Key, "skip")] //String as Key, default options
+    public async Task<string> Skip()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        return "Skip";
+    }
 }

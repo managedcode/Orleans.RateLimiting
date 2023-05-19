@@ -3,6 +3,7 @@ using Orleans;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Surrogates;
 
+[Immutable]
 [GenerateSerializer]
 public struct ConcurrencyLimiterOptionsSurrogate
 {
@@ -12,14 +13,12 @@ public struct ConcurrencyLimiterOptionsSurrogate
         QueueLimit = 0;
     }
 
-    [Id(0)]
-    public int PermitLimit { get; set; }
+    [Id(0)] public int PermitLimit;
 
 
     [Id(1)]
-    public QueueProcessingOrder QueueProcessingOrder { get; set; } = QueueProcessingOrder.OldestFirst;
+    public QueueProcessingOrder QueueProcessingOrder  = QueueProcessingOrder.OldestFirst;
 
 
-    [Id(2)]
-    public int QueueLimit { get; set; }
+    [Id(2)] public int QueueLimit;
 }

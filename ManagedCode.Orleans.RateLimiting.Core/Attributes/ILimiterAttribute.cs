@@ -5,4 +5,5 @@ public interface ILimiterAttribute<T>
     public string? Key { get; }
     public KeyType KeyType { get; }
     public T? Options { get; }
+    public string? ConfigurationName { get; }
 }

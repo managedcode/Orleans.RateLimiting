@@ -1,3 +1,6 @@
+using System.Threading.RateLimiting;
+using ManagedCode.Orleans.RateLimiting.Client.Middlewares;
+using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,16 +15,17 @@ public class HttpHostProgram
         builder.Services.AddControllers();
         builder.Services.AddSignalR();
 
-        // AddProperty it for using Orleans Identity
-        //builder.Services.AddOrleansIdentity();
+       
 
+        
         var app = builder.Build();
 
 
         app.MapControllers();
-        app.MapHub<TestAnonymousHub>(nameof(TestAnonymousHub));
-        app.MapHub<TestAuthorizeHub>(nameof(TestAuthorizeHub));
+        app.MapHub<TestHub>(nameof(TestHub));
 
+        app.UseMiddleware<RateLimitingMiddleware>();
+        
         app.Run();
     }
 }

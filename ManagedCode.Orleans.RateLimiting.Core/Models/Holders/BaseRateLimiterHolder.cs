@@ -10,6 +10,7 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
     where TGrain : IRateLimiterGrainWithConfiguration<TOption>
 {
     private readonly IGrainFactory _grainFactory;
+    private readonly TOption _option;
     private readonly TGrain _grain;
 
     internal BaseRateLimiterHolder(TGrain grain, IGrainFactory grainFactory)
@@ -17,12 +18,32 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
         _grain = grain;
         _grainFactory = grainFactory;
     }
+    
+    internal BaseRateLimiterHolder(TGrain grain, IGrainFactory grainFactory, TOption option)
+    {
+        _grain = grain;
+        _grainFactory = grainFactory;
+        _option = option;
+    }
 
     public async Task<OrleansRateLimitLease> AcquireAsync(int permitCount = 1)
     {
         try
         {
             var metadata = await _grain.AcquireAsync(permitCount);
+            return new OrleansRateLimitLease(metadata, _grainFactory);
+        }
+        catch (TimeoutException timeoutException)
+        {
+            return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
+        }
+    }
+
+    public async Task<OrleansRateLimitLease> AcquireAndConfigureAsync(int permitCount = 1)
+    {
+        try
+        {
+            var metadata = await _grain.AcquireAndCheckConfigurationAsync(_option);
             return new OrleansRateLimitLease(metadata, _grainFactory);
         }
         catch (TimeoutException timeoutException)
@@ -41,15 +62,18 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
         return _grain.ConfigureAsync(options);
     }
     
-    public ValueTask<TOption> Configure()
+    public ValueTask<TOption> GetConfiguration()
     {
         return _grain.GetConfiguration();
     }
     
     public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(TOption options)
     {
-        if (options is null)
+        if (options is null && _option is null)
             return await AcquireAsync();
+        
+        if(_option is not null)
+            options = _option;
         
         try
         {
@@ -66,6 +90,9 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
     {
         if (options is null)
             return await AcquireAsync();
+        
+        if(_option is not null)
+            options = _option;
         
         try
         {

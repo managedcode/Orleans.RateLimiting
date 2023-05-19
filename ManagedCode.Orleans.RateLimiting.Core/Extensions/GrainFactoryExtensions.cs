@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Core.Attributes;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
+using ManagedCode.Orleans.RateLimiting.Core.Models;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 using Orleans;
 
@@ -16,6 +20,29 @@ public static class GrainFactoryExtensions
             IConcurrencyLimiterGrain => factory.GetConcurrencyLimiter(key),
             ISlidingWindowRateLimiterGrain => factory.GetSlidingWindowRateLimiter(key),
             ITokenBucketRateLimiterGrain => factory.GetTokenBucketRateLimiter(key),
+            
+            _ => null //throw new ArgumentException("Unknown rate limiter grain type")
+        };
+
+        return limiter;
+    }
+    
+    public static ILimiterHolder? GetRateLimiterByConfig(this IGrainFactory factory, string key, string configurationName, IEnumerable<RateLimiterConfig> configs)
+    {
+        
+        var name = configurationName.ToLowerInvariant();
+        var option = configs.FirstOrDefault(f=>f.Name == name);
+        if (option is null)
+        {
+            return null;
+        }
+        
+        ILimiterHolder? limiter = option.Configuration switch
+        {
+            FixedWindowRateLimiterOptions => factory.GetFixedWindowRateLimiter(key),
+            ConcurrencyLimiterOptions => factory.GetConcurrencyLimiter(key),
+            SlidingWindowRateLimiterOptions => factory.GetSlidingWindowRateLimiter(key),
+            TokenBucketRateLimiterOptions=> factory.GetTokenBucketRateLimiter(key),
             
             _ => null //throw new ArgumentException("Unknown rate limiter grain type")
         };

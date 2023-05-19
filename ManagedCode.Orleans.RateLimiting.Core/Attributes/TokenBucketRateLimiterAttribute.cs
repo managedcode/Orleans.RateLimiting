@@ -6,6 +6,7 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Attributes;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<TokenBucketRateLimiterOptions>
 {
+    public string? ConfigurationName { get; }
     public string? Key { get; }
     public KeyType KeyType { get; }
     public TokenBucketRateLimiterOptions? Options { get; }
@@ -68,6 +69,19 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
                 AutoReplenishment = autoReplenishment,
                 QueueProcessingOrder = queueProcessingOrder
             };
+        }
+    }
+    
+    public TokenBucketRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    {
+        ConfigurationName = configurationName;
+        Key = key;
+        KeyType = keyType;
+        
+        //override keyType if key is set
+        if (!string.IsNullOrEmpty(key))
+        {
+            KeyType = KeyType.Key;
         }
     }
 }

@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Core.Attributes;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
+using ManagedCode.Orleans.RateLimiting.Core.Models;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 using Orleans;
 
@@ -8,7 +10,7 @@ namespace ManagedCode.Orleans.RateLimiting.Server.GrainCallFilter;
 
 public class TokenBucketRateLimiterIncomingFilter : BaseRateLimitingIncomingFilter<TokenBucketRateLimiterAttribute, TokenBucketRateLimiterOptions>
 {
-    public TokenBucketRateLimiterIncomingFilter(IGrainFactory grainFactory) : base(grainFactory)
+    public TokenBucketRateLimiterIncomingFilter(IGrainFactory grainFactory, IEnumerable<RateLimiterConfig> rateLimiterConfigs) : base(grainFactory, rateLimiterConfigs)
     {
     }
 

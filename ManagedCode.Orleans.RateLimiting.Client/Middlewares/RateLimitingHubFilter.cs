@@ -17,6 +17,7 @@ public class RateLimitingHubFilter : IHubFilter
         _logger = logger;
         _client = client;
     }
+    
     public async ValueTask<object?> InvokeMethodAsync(HubInvocationContext invocationContext, Func<HubInvocationContext, ValueTask<object?>> next)
     {
         var limiter = _client.GetFixedWindowRateLimiter(invocationContext.Context.User.Identity.Name);

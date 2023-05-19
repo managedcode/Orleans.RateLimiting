@@ -5,5 +5,6 @@
         Task<string> Do();
         Task<string> Go();
         Task<string> Take();
+        Task<string> Skip();
     }
 }

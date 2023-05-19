@@ -104,4 +104,31 @@ public class SlidingWindowRateLimiterGrainTests
         (success + errors).Should().Be(count);
         success.Should().BeLessThan(errors);
     }
+    
+    [Fact]
+    public async Task RateLimiterConfigTests()
+    {
+        int count = 100;
+        int success = 0;
+        int errors = 0;
+        
+        var tasks = Enumerable.Range(0, count).Select(s => Task.Run(async () =>
+        {
+            try
+            {
+                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString()).Skip();
+                Interlocked.Increment(ref success);
+            }
+            catch
+            {
+                Interlocked.Increment(ref errors);
+            }
+
+        }));
+
+        await Task.WhenAll(tasks);
+
+        (success + errors).Should().Be(count);
+        success.Should().BeLessThan(errors);
+    }
 }

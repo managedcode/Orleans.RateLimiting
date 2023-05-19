@@ -25,4 +25,11 @@ public class TestSlidingWindowRateLimiterGrain : Grain, ITestSlidingWindowRateLi
         await Task.Delay(TimeSpan.FromSeconds(5));
         return "Take";
     }
+    
+    [SlidingWindowRateLimiter("SlidingWindowRateLimiterOptions1", KeyType.Key, "Skip")] //String as Key, default options
+    public async Task<string> Skip()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        return "Skip";
+    }
 }

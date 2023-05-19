@@ -12,4 +12,9 @@ public class FixedWindowRateLimiterHolder : BaseRateLimiterHolder<IFixedWindowRa
     {
     }
     
+    public FixedWindowRateLimiterHolder(IFixedWindowRateLimiterGrain grain, IGrainFactory grainFactory, FixedWindowRateLimiterOptions options) : base(grain,
+        grainFactory, options)
+    {
+    }
+    
 }

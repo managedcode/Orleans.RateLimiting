@@ -26,5 +26,12 @@ namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains
             await Task.Delay(TimeSpan.FromSeconds(5));
             return "Take";
         }
+        
+        [ConcurrencyLimiter("ConcurrencyLimiterOptions1", KeyType.Key, "skip")] //String as Key, default options
+        public async Task<string> Skip()
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            return "Skip";
+        }
     }
 }
