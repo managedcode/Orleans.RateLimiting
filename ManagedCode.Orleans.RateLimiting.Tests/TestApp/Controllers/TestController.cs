@@ -6,38 +6,17 @@ using Microsoft.AspNetCore.Mvc;
 namespace ManagedCode.Orleans.RateLimiting.Tests.TestApp.Controllers;
 
 [Route("test")]
-[AnonymousIpRateLimiter("ipsdfsdf")]
+[IpRateLimiter("ip")]
 public class TestController : ControllerBase
 {
-    [AuthorizedIpRateLimiter("ipsdfsdf")]
+    [AuthorizedIpRateLimiter("Authorized")]
+    [AnonymousIpRateLimiter("Authorized")]
+    [InRoleIpRateLimiter("Authorized", "Admin")]
     [HttpGet("authorize")]
-    public ActionResult<string> Authorize()
+    public async Task<ActionResult<string>> Authorize()
     {
+        await Task.Delay(300);
         return "Authorize";
     }
     
-    [ConcurrencyLimiter("LimitByUser")]
-    [HttpGet("anonymous")]
-    public ActionResult<string> Anonymous()
-    {
-        return "Anonymous";
-    }
-    
-    [HttpGet("admin")]
-    public ActionResult<string> Admin()
-    {
-        return "admin";
-    }
-    
-    [HttpGet("moderator")]
-    public ActionResult<string> Moderator()
-    {
-        return "moderator";
-    }
-    
-    [HttpGet("common")]
-    public ActionResult<string> Common()
-    {
-        return "common";
-    }
 }

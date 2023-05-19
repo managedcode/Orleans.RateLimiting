@@ -9,21 +9,34 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 public class GroupLimiterHolder :  IAsyncDisposable, IDisposable
 {
     private Dictionary<ILimiterHolder, OrleansRateLimitLease?> _holders = new();
-   public void AddLimiter(ILimiterHolder? holder)
+   public bool AddLimiter(ILimiterHolder? holder)
    {
-          if(holder is not null)
-              _holders.Add(holder, null);
+       if (holder is not null)
+       {
+           _holders.Add(holder, null);
+           return true;
+       }
+
+       return false;
+
    }
    
-   public async Task AcquireAsync()
+   public async Task<OrleansRateLimitLease?> AcquireAsync()
    {
        foreach (var holder in _holders.Keys)
        {
            var lease = await holder.AcquireAndConfigureAsync();
-           lease.ThrowIfNotAcquired();
            if (lease.IsAcquired)
-               _holders[holder] = lease;
+           {
+               _holders[holder] = lease;   
+           }
+           else
+           {
+               return lease;
+           }
        }
+
+       return null;
    }
 
    public async ValueTask DisposeAsync()

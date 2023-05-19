@@ -1,3 +1,4 @@
+using FluentAssertions;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using Xunit;
 using Xunit.Abstractions;
@@ -18,10 +19,40 @@ public class WebApiTests
 
 
     [Fact]
-    public async Task Some()
+    public async Task ControllerTest()
     {
         var client = _testApp.CreateClient();
-        var response = await client.GetAsync("/test/authorize");
-        response.EnsureSuccessStatusCode();
+        
+        int count = 25;
+        int success = 0;
+        int errors = 0;
+        
+        var tasks = Enumerable.Range(0, count).Select(s => Task.Run(async () =>
+        {
+            try
+            {
+                var response = await client.GetAsync("/test/authorize");
+                var content = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    Interlocked.Increment(ref success);                    
+                }
+                else
+                {
+                    Interlocked.Increment(ref errors);
+                }
+
+            }
+            catch
+            {
+                Interlocked.Increment(ref errors);
+            }
+
+        }));
+
+        await Task.WhenAll(tasks);
+
+        (success + errors).Should().Be(count);
+        success.Should().BeLessThan(errors);
     }
 }

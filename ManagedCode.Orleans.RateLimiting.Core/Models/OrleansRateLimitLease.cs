@@ -66,6 +66,11 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
             throw new RateLimitExceededException(Reason, RetryAfter);
     }
     
+    public RateLimitExceededException ToException()
+    {
+        return new(Reason, RetryAfter);
+    }
+    
     public void Dispose()
     {
         _ = DisposeAsync();

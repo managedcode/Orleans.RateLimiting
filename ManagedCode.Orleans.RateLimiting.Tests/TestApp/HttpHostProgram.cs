@@ -15,7 +15,26 @@ public class HttpHostProgram
         builder.Services.AddControllers();
         builder.Services.AddSignalR();
 
+        builder.Services.AddRateLimiterOptions("ip", new FixedWindowRateLimiterOptions()
+        {
+            QueueLimit = 5,
+            PermitLimit = 10,
+            Window = TimeSpan.FromSeconds(1)
+        });
        
+        builder.Services.AddRateLimiterOptions("Anonymous", new FixedWindowRateLimiterOptions()
+        {
+            QueueLimit = 1,
+            PermitLimit = 1,
+            Window = TimeSpan.FromSeconds(1)
+        });
+        
+        builder.Services.AddRateLimiterOptions("Authorized", new FixedWindowRateLimiterOptions()
+        {
+            QueueLimit = 2,
+            PermitLimit = 2,
+            Window = TimeSpan.FromSeconds(1)
+        });
 
         
         var app = builder.Build();
@@ -25,6 +44,8 @@ public class HttpHostProgram
         app.MapHub<TestHub>(nameof(TestHub));
 
         app.UseMiddleware<RateLimitingMiddleware>();
+        
+        app.UseRateLimiter();
         
         app.Run();
     }

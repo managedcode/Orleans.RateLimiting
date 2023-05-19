@@ -39,10 +39,10 @@ public static class GrainFactoryExtensions
         
         ILimiterHolder? limiter = option.Configuration switch
         {
-            FixedWindowRateLimiterOptions => factory.GetFixedWindowRateLimiter(key),
-            ConcurrencyLimiterOptions => factory.GetConcurrencyLimiter(key),
-            SlidingWindowRateLimiterOptions => factory.GetSlidingWindowRateLimiter(key),
-            TokenBucketRateLimiterOptions=> factory.GetTokenBucketRateLimiter(key),
+            FixedWindowRateLimiterOptions options => factory.GetFixedWindowRateLimiter(key, options),
+            ConcurrencyLimiterOptions options => factory.GetConcurrencyLimiter(key, options),
+            SlidingWindowRateLimiterOptions options => factory.GetSlidingWindowRateLimiter(key, options),
+            TokenBucketRateLimiterOptions options => factory.GetTokenBucketRateLimiter(key, options),
             
             _ => null //throw new ArgumentException("Unknown rate limiter grain type")
         };
@@ -54,19 +54,39 @@ public static class GrainFactoryExtensions
     {
         return new FixedWindowRateLimiterHolder(factory.GetGrain<IFixedWindowRateLimiterGrain>(key), factory);
     }
+    
+    public static FixedWindowRateLimiterHolder GetFixedWindowRateLimiter(this IGrainFactory factory, string key, FixedWindowRateLimiterOptions options)
+    {
+        return new FixedWindowRateLimiterHolder(factory.GetGrain<IFixedWindowRateLimiterGrain>(key), factory, options);
+    }
 
     public static ConcurrencyLimiterHolder GetConcurrencyLimiter(this IGrainFactory factory, string key)
     {
         return new ConcurrencyLimiterHolder(factory.GetGrain<IConcurrencyLimiterGrain>(key), factory);
+    }
+    
+    public static ConcurrencyLimiterHolder GetConcurrencyLimiter(this IGrainFactory factory, string key, ConcurrencyLimiterOptions options)
+    {
+        return new ConcurrencyLimiterHolder(factory.GetGrain<IConcurrencyLimiterGrain>(key), factory, options);
     }
 
     public static SlidingWindowRateLimiterHolder GetSlidingWindowRateLimiter(this IGrainFactory factory, string key)
     {
         return new SlidingWindowRateLimiterHolder(factory.GetGrain<ISlidingWindowRateLimiterGrain>(key), factory);
     }
+    
+    public static SlidingWindowRateLimiterHolder GetSlidingWindowRateLimiter(this IGrainFactory factory, string key, SlidingWindowRateLimiterOptions options)
+    {
+        return new SlidingWindowRateLimiterHolder(factory.GetGrain<ISlidingWindowRateLimiterGrain>(key), factory, options);
+    }
 
     public static TokenBucketRateLimiterHolder GetTokenBucketRateLimiter(this IGrainFactory factory, string key)
     {
         return new TokenBucketRateLimiterHolder(factory.GetGrain<ITokenBucketRateLimiterGrain>(key), factory);
+    }
+    
+    public static TokenBucketRateLimiterHolder GetTokenBucketRateLimiter(this IGrainFactory factory, string key, TokenBucketRateLimiterOptions options)
+    {
+        return new TokenBucketRateLimiterHolder(factory.GetGrain<ITokenBucketRateLimiterGrain>(key), factory, options);
     }
 }
