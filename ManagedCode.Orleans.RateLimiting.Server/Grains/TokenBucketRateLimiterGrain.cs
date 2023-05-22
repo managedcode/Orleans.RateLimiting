@@ -4,11 +4,13 @@ using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans;
 using Orleans.Concurrency;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
+[GrainType($"ManagedCode.${nameof(TokenBucketRateLimiterGrain)}")]
 public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimiter, TokenBucketRateLimiterOptions>, ITokenBucketRateLimiterGrain
 {
     public TokenBucketRateLimiterGrain(ILogger<TokenBucketRateLimiterGrain> logger, IOptions<TokenBucketRateLimiterOptions> options) : base(logger, options.Value)

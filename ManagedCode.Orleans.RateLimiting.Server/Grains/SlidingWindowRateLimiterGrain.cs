@@ -4,11 +4,13 @@ using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans;
 using Orleans.Concurrency;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
+[GrainType($"ManagedCode.${nameof(SlidingWindowRateLimiterGrain)}")]
 public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain
 {
     public SlidingWindowRateLimiterGrain(ILogger<SlidingWindowRateLimiterGrain> logger, IOptions<SlidingWindowRateLimiterOptions> options) : base(logger, options.Value)

@@ -4,11 +4,13 @@ using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans;
 using Orleans.Concurrency;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
+[GrainType($"ManagedCode.${nameof(ConcurrencyLimiterGrain)}")]
 public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain
 {
     public ConcurrencyLimiterGrain(ILogger<ConcurrencyLimiterGrain> logger, IOptions<ConcurrencyLimiterOptions> options) : base(logger, options.Value)
