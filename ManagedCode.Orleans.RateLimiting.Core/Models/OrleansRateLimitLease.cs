@@ -29,13 +29,9 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
 
     public IGrainFactory GrainFactory { get; init; }
 
-    public string Reason => TryGetMetadata("REASON_PHRASE", out var reason)
-        ? reason ?? string.Empty
-        : "Rate limit exceeded";
+    public string Reason => TryGetMetadata("REASON_PHRASE", out var reason) ? reason ?? string.Empty : "Rate limit exceeded";
 
-    public TimeSpan RetryAfter => TryGetMetadata("RETRY_AFTER", out var reason)
-        ? TimeSpan.Parse(reason ?? TimeSpan.Zero.ToString())
-        : TimeSpan.Zero;
+    public TimeSpan RetryAfter => TryGetMetadata("RETRY_AFTER", out var reason) ? TimeSpan.Parse(reason ?? TimeSpan.Zero.ToString()) : TimeSpan.Zero;
 
     public bool IsAcquired { get; init; }
 
@@ -60,20 +56,20 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
         }
     }
 
+    public void Dispose()
+    {
+        _ = DisposeAsync();
+    }
+
     public void ThrowIfNotAcquired([CallerMemberName] string? caller = null, [CallerLineNumber] int? lineNumber = null, [CallerFilePath] string? filePath = null)
     {
         if (!IsAcquired)
             throw new RateLimitExceededException(Reason, RetryAfter);
     }
-    
+
     public RateLimitExceededException ToException()
     {
-        return new(Reason, RetryAfter);
-    }
-    
-    public void Dispose()
-    {
-        _ = DisposeAsync();
+        return new RateLimitExceededException(Reason, RetryAfter);
     }
 
     public virtual IEnumerable<KeyValuePair<string, string?>> GetAllMetadata()

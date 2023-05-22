@@ -4,9 +4,7 @@ using Orleans;
 namespace ManagedCode.Orleans.RateLimiting.Core.Surrogates.Convertors;
 
 [RegisterConverter]
-public sealed class
-    SlidingWindowRateLimiterOptionsConverter : IConverter<SlidingWindowRateLimiterOptions,
-        SlidingWindowRateLimiterOptionsSurrogate>
+public sealed class SlidingWindowRateLimiterOptionsConverter : IConverter<SlidingWindowRateLimiterOptions, SlidingWindowRateLimiterOptionsSurrogate>
 {
     public SlidingWindowRateLimiterOptions ConvertFromSurrogate(in SlidingWindowRateLimiterOptionsSurrogate surrogate)
     {

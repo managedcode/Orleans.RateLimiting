@@ -26,7 +26,7 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
     protected TLimiter RateLimiter { get; set; }
 
     protected abstract TLimiter CreateDefaultRateLimiter();
-    
+
     public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1)
     {
         var guid = Guid.NewGuid();

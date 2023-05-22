@@ -14,16 +14,13 @@ public struct FixedWindowRateLimiterOptionsSurrogate
         QueueLimit = 0;
     }
 
-    [Id(0)]
-    public TimeSpan Window = TimeSpan.Zero;
+    [Id(0)] public TimeSpan Window = TimeSpan.Zero;
 
-    [Id(1)]
-    public bool AutoReplenishment = true;
+    [Id(1)] public bool AutoReplenishment = true;
 
     [Id(2)] public int PermitLimit;
 
-    [Id(3)]
-    public QueueProcessingOrder QueueProcessingOrder  = QueueProcessingOrder.OldestFirst;
+    [Id(3)] public QueueProcessingOrder QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
 
     [Id(4)] public int QueueLimit;
 }

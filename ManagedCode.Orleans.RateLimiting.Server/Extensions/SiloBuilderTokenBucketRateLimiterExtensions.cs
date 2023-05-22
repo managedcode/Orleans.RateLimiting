@@ -8,8 +8,7 @@ namespace ManagedCode.Orleans.RateLimiting.Server.Extensions;
 
 public static class SiloBuilderTokenBucketRateLimiterExtensions
 {
-    public static ISiloBuilder AddOrleansTokenBucketRateLimiter(this ISiloBuilder siloBuilder,
-        Action<TokenBucketRateLimiterOptions> defaultOptions)
+    public static ISiloBuilder AddOrleansTokenBucketRateLimiter(this ISiloBuilder siloBuilder, Action<TokenBucketRateLimiterOptions> defaultOptions)
     {
         siloBuilder.Services.AddOptions<TokenBucketRateLimiterOptions>().Configure(defaultOptions.Invoke);
         siloBuilder.AddIncomingGrainCallFilter<TokenBucketRateLimiterIncomingFilter>();

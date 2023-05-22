@@ -9,19 +9,19 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 
 public class RateLimitingHubFilter : IHubFilter
 {
-    private readonly ILogger<RateLimitingHubFilter> _logger;
     private readonly IClusterClient _client;
+    private readonly ILogger<RateLimitingHubFilter> _logger;
 
     public RateLimitingHubFilter(ILogger<RateLimitingHubFilter> logger, IClusterClient client)
     {
         _logger = logger;
         _client = client;
     }
-    
+
     public async ValueTask<object?> InvokeMethodAsync(HubInvocationContext invocationContext, Func<HubInvocationContext, ValueTask<object?>> next)
     {
         var limiter = _client.GetFixedWindowRateLimiter(invocationContext.Context.User.Identity.Name);
-        
+
         await using var lease = await limiter.AcquireAsync();
         lease.ThrowIfNotAcquired();
         return await next(invocationContext);

@@ -1,6 +1,5 @@
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Client.Extensions;
-using ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,28 +15,28 @@ public class HttpHostProgram
         builder.Services.AddControllers();
         builder.Services.AddSignalR();
 
-        builder.Services.AddRateLimiterOptions("ip", new FixedWindowRateLimiterOptions()
+        builder.Services.AddRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
         {
             QueueLimit = 5,
             PermitLimit = 10,
             Window = TimeSpan.FromSeconds(1)
         });
-       
-        builder.Services.AddRateLimiterOptions("Anonymous", new FixedWindowRateLimiterOptions()
+
+        builder.Services.AddRateLimiterOptions("Anonymous", new FixedWindowRateLimiterOptions
         {
             QueueLimit = 1,
             PermitLimit = 1,
             Window = TimeSpan.FromSeconds(1)
         });
-        
-        builder.Services.AddRateLimiterOptions("Authorized", new FixedWindowRateLimiterOptions()
+
+        builder.Services.AddRateLimiterOptions("Authorized", new FixedWindowRateLimiterOptions
         {
             QueueLimit = 2,
             PermitLimit = 2,
             Window = TimeSpan.FromSeconds(1)
         });
 
-        
+
         var app = builder.Build();
 
 
@@ -46,9 +45,9 @@ public class HttpHostProgram
 
         app.UseOrleansIpRateLimiting();
         app.UseOrleansUserRateLimiting();
-        
+
         app.UseRateLimiter();
-        
+
         app.Run();
     }
 }

@@ -16,8 +16,7 @@ public struct ConcurrencyLimiterOptionsSurrogate
     [Id(0)] public int PermitLimit;
 
 
-    [Id(1)]
-    public QueueProcessingOrder QueueProcessingOrder  = QueueProcessingOrder.OldestFirst;
+    [Id(1)] public QueueProcessingOrder QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
 
 
     [Id(2)] public int QueueLimit;

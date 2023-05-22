@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Core.Attributes;
@@ -15,7 +14,7 @@ public class ConcurrencyLimiterIncomingFilter : BaseRateLimitingIncomingFilter<C
     {
     }
 
-    protected override ILimiterHolderWithConfiguration<ConcurrencyLimiterOptions>  GetLimiter(string key)
+    protected override ILimiterHolderWithConfiguration<ConcurrencyLimiterOptions> GetLimiter(string key)
     {
         return GrainFactory.GetConcurrencyLimiter(key);
     }

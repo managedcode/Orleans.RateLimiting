@@ -10,11 +10,9 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 
 public class OrleansIpRateLimitingMiddleware : OrleansBaseRateLimitingMiddleware
 {
-    
-    public OrleansIpRateLimitingMiddleware(ILogger<OrleansIpRateLimitingMiddleware> logger, RequestDelegate next, 
-        IClusterClient client, IServiceProvider services) : base(logger, next, client, services)
+    public OrleansIpRateLimitingMiddleware(ILogger<OrleansIpRateLimitingMiddleware> logger, RequestDelegate next, IClusterClient client, IServiceProvider services) :
+        base(logger, next, client, services)
     {
-
     }
 
 
@@ -27,12 +25,9 @@ public class OrleansIpRateLimitingMiddleware : OrleansBaseRateLimitingMiddleware
     {
         var attribute = TryGetAttribute<IpRateLimiterAttribute>(httpContext);
         if (attribute.HasValue)
-        {
             return holder.AddLimiter(TryGetLimiterHolder(httpContext, CreateKey(httpContext.Request.GetClientIpAddress(), attribute.Value.postfix!),
                 attribute.Value.postfix!));
-        }
-        
+
         return false;
     }
-    
 }

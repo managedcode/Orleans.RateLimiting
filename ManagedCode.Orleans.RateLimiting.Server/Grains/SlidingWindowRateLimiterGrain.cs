@@ -9,11 +9,9 @@ using Orleans.Concurrency;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
-public class SlidingWindowRateLimiterGrain :
-    RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain
+public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain
 {
-    public SlidingWindowRateLimiterGrain(ILogger<SlidingWindowRateLimiterGrain> logger,
-        IOptions<SlidingWindowRateLimiterOptions> options) : base(logger, options.Value)
+    public SlidingWindowRateLimiterGrain(ILogger<SlidingWindowRateLimiterGrain> logger, IOptions<SlidingWindowRateLimiterOptions> options) : base(logger, options.Value)
     {
     }
 
@@ -22,39 +20,30 @@ public class SlidingWindowRateLimiterGrain :
         return ValueTask.FromResult(RateLimiter.TryReplenish());
     }
 
-    protected override SlidingWindowRateLimiter CreateDefaultRateLimiter()
-    {
-        return new SlidingWindowRateLimiter(Options);
-    }
-    
-    private bool CheckOptions(SlidingWindowRateLimiterOptions options)
-    {
-        return Options.PermitLimit != options.PermitLimit
-               || Options.QueueLimit != options.QueueLimit
-               || Options.QueueProcessingOrder != options.QueueProcessingOrder
-               || Options.Window != options.Window
-               || Options.AutoReplenishment != options.AutoReplenishment
-               || Options.SegmentsPerWindow != options.SegmentsPerWindow
-            ;
-    }
-
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(SlidingWindowRateLimiterOptions options)
     {
-        if(CheckOptions(options))
-        {
+        if (CheckOptions(options))
             await ConfigureAsync(options);
-        }
 
         return await AcquireAsync();
     }
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, SlidingWindowRateLimiterOptions options)
     {
-        if(CheckOptions(options))
-        {
+        if (CheckOptions(options))
             await ConfigureAsync(options);
-        }
 
         return await AcquireAsync(permitCount);
+    }
+
+    protected override SlidingWindowRateLimiter CreateDefaultRateLimiter()
+    {
+        return new SlidingWindowRateLimiter(Options);
+    }
+
+    private bool CheckOptions(SlidingWindowRateLimiterOptions options)
+    {
+        return Options.PermitLimit != options.PermitLimit || Options.QueueLimit != options.QueueLimit || Options.QueueProcessingOrder != options.QueueProcessingOrder ||
+               Options.Window != options.Window || Options.AutoReplenishment != options.AutoReplenishment || Options.SegmentsPerWindow != options.SegmentsPerWindow;
     }
 }

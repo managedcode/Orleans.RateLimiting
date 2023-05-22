@@ -1,6 +1,4 @@
 using ManagedCode.Orleans.RateLimiting.Client.Attributes;
-using ManagedCode.Orleans.RateLimiting.Core.Attributes;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests.TestApp.Controllers;
@@ -18,5 +16,4 @@ public class TestController : ControllerBase
         await Task.Delay(300);
         return "Authorize";
     }
-    
 }

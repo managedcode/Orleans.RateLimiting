@@ -4,5 +4,5 @@ public enum KeyType
 {
     Key,
     GrainId,
-    GrainType,
+    GrainType
 }

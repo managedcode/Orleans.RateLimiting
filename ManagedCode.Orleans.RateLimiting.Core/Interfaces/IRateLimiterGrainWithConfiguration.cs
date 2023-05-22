@@ -7,7 +7,7 @@ public interface IRateLimiterGrainWithConfiguration<TOption> : IRateLimiterGrain
 {
     ValueTask ConfigureAsync(TOption options);
     ValueTask<TOption> GetConfiguration();
-    
+
     Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(TOption options);
     Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TOption options);
 }

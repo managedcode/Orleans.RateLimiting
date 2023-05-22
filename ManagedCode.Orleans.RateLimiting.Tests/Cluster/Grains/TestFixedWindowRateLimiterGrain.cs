@@ -19,13 +19,13 @@ public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimite
         return "Go";
     }
 
-    [FixedWindowRateLimiter(KeyType.GrainType, permitLimit:2, queueLimit:1)] //GrainType as Key, custom options, some of them are default (check Attribute)
+    [FixedWindowRateLimiter(KeyType.GrainType, permitLimit: 2, queueLimit: 1)] //GrainType as Key, custom options, some of them are default (check Attribute)
     public async Task<string> Take()
     {
         await Task.Delay(TimeSpan.FromSeconds(5));
         return "Take";
     }
-    
+
     [FixedWindowRateLimiter("FixedWindowRateLimiterOptions1", KeyType.Key, "skip")] //String as Key, default options
     public async Task<string> Skip()
     {

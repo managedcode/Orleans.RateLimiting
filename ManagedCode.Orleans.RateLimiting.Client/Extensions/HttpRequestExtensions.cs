@@ -9,22 +9,22 @@ public static class HttpRequestExtensions
 {
     public static string GetClientIpAddress(this HttpRequest request)
     {
-        return GetClientIpAddress(request, new []
+        return GetClientIpAddress(request, new[]
         {
             "X-Real-IP",
             "X-Forwarded-For",
             "REMOTE_ADDR"
         });
     }
-    
+
     public static string GetClientIpAddress(this HttpRequest request, string[] headers)
     {
         string? ip = null;
-        
+
         foreach (var header in headers)
         {
             ip = GetHeaderValueAs(request, header);
-            if(!string.IsNullOrEmpty(ip))
+            if (!string.IsNullOrEmpty(ip))
                 break;
         }
 
@@ -33,14 +33,14 @@ public static class HttpRequestExtensions
 
         return ip ?? string.Empty;
     }
-    
+
     private static string GetHeaderValueAs(HttpRequest request, string headerName)
     {
         StringValues values;
 
         if (request.Headers?.TryGetValue(headerName, out values) ?? false)
         {
-            string rawValues = values.ToString(); // writes out as Csv when there are multiple.
+            var rawValues = values.ToString(); // writes out as Csv when there are multiple.
 
             if (!string.IsNullOrWhiteSpace(rawValues))
             {
@@ -51,15 +51,12 @@ public static class HttpRequestExtensions
 
         return string.Empty;
     }
-        
+
     private static IEnumerable<string> SplitCsv(string? csvList)
     {
         if (string.IsNullOrWhiteSpace(csvList))
             return Enumerable.Empty<string>();
 
-        return csvList
-            .TrimEnd(',')
-            .Split(',')
-            .Select(s => s.Trim());
+        return csvList.TrimEnd(',').Split(',').Select(s => s.Trim());
     }
 }

@@ -1,11 +1,6 @@
-using System.Diagnostics;
-using System.Threading.RateLimiting;
 using FluentAssertions;
-using ManagedCode.Orleans.RateLimiting.Core.Extensions;
-using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces;
-using ManagedCode.TimeSeries.Summers;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -26,10 +21,10 @@ public class TokenBucketRateLimiterGrainTests
     [Fact]
     public async Task GrainIdTests()
     {
-        int count = 100;
-        int success = 0;
-        int errors = 0;
-        
+        var count = 100;
+        var success = 0;
+        var errors = 0;
+
         var tasks = Enumerable.Range(0, count).Select(s => Task.Run(async () =>
         {
             try
@@ -41,7 +36,6 @@ public class TokenBucketRateLimiterGrainTests
             {
                 Interlocked.Increment(ref errors);
             }
-
         }));
 
         await Task.WhenAll(tasks);
@@ -50,14 +44,14 @@ public class TokenBucketRateLimiterGrainTests
         success.Should().Be(count);
         errors.Should().Be(0);
     }
-    
+
     [Fact]
     public async Task KeyTests()
     {
-        int count = 100;
-        int success = 0;
-        int errors = 0;
-        
+        var count = 100;
+        var success = 0;
+        var errors = 0;
+
         var tasks = Enumerable.Range(0, count).Select(s => Task.Run(async () =>
         {
             try
@@ -69,7 +63,6 @@ public class TokenBucketRateLimiterGrainTests
             {
                 Interlocked.Increment(ref errors);
             }
-
         }));
 
         await Task.WhenAll(tasks);
@@ -77,14 +70,14 @@ public class TokenBucketRateLimiterGrainTests
         (success + errors).Should().Be(count);
         success.Should().BeLessThan(errors);
     }
-    
+
     [Fact]
     public async Task TypeTests()
     {
-        int count = 100;
-        int success = 0;
-        int errors = 0;
-        
+        var count = 100;
+        var success = 0;
+        var errors = 0;
+
         var tasks = Enumerable.Range(0, count).Select(s => Task.Run(async () =>
         {
             try
@@ -96,7 +89,6 @@ public class TokenBucketRateLimiterGrainTests
             {
                 Interlocked.Increment(ref errors);
             }
-
         }));
 
         await Task.WhenAll(tasks);
@@ -104,14 +96,14 @@ public class TokenBucketRateLimiterGrainTests
         (success + errors).Should().Be(count);
         success.Should().BeLessThan(errors);
     }
-    
+
     [Fact]
     public async Task RateLimiterConfigTests()
     {
-        int count = 100;
-        int success = 0;
-        int errors = 0;
-        
+        var count = 100;
+        var success = 0;
+        var errors = 0;
+
         var tasks = Enumerable.Range(0, count).Select(s => Task.Run(async () =>
         {
             try
@@ -123,7 +115,6 @@ public class TokenBucketRateLimiterGrainTests
             {
                 Interlocked.Increment(ref errors);
             }
-
         }));
 
         await Task.WhenAll(tasks);

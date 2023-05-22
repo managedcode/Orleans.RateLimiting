@@ -38,9 +38,7 @@ public class TestClusterApplication : WebApplicationFactory<HttpHostProgram>, IC
     {
         var builder = new HubConnectionBuilder();
         configure?.Invoke(builder);
-        return builder.WithUrl(new Uri(Server.BaseAddress, hubUrl),
-                o => o.HttpMessageHandlerFactory = _ => Server.CreateHandler())
-            .Build();
+        return builder.WithUrl(new Uri(Server.BaseAddress, hubUrl), o => o.HttpMessageHandlerFactory = _ => Server.CreateHandler()).Build();
     }
 
     protected override void Dispose(bool disposing)

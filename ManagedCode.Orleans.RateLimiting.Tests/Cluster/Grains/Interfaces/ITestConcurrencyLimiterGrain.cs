@@ -1,10 +1,9 @@
-﻿namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces
+﻿namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces;
+
+public interface ITestConcurrencyLimiterGrain : IGrainWithStringKey
 {
-    public interface ITestConcurrencyLimiterGrain : IGrainWithStringKey
-    {
-        Task<string> Do();
-        Task<string> Go();
-        Task<string> Take();
-        Task<string> Skip();
-    }
+    Task<string> Do();
+    Task<string> Go();
+    Task<string> Take();
+    Task<string> Skip();
 }

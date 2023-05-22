@@ -4,9 +4,7 @@ using Orleans;
 namespace ManagedCode.Orleans.RateLimiting.Core.Surrogates.Convertors;
 
 [RegisterConverter]
-public sealed class
-    TokenBucketRateLimiterOptionsConverter : IConverter<TokenBucketRateLimiterOptions,
-        TokenBucketRateLimiterOptionsSurrogate>
+public sealed class TokenBucketRateLimiterOptionsConverter : IConverter<TokenBucketRateLimiterOptions, TokenBucketRateLimiterOptionsSurrogate>
 {
     public TokenBucketRateLimiterOptions ConvertFromSurrogate(in TokenBucketRateLimiterOptionsSurrogate surrogate)
     {

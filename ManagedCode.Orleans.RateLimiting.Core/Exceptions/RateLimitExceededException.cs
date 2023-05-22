@@ -16,7 +16,7 @@ public class RateLimitExceededException : Exception
         RetryAfter = TimeSpan.Zero;
     }
 
-    public RateLimitExceededException(TimeSpan retry) : base( "Time limit exceeded")
+    public RateLimitExceededException(TimeSpan retry) : base("Time limit exceeded")
     {
         Reason = "Time limit exceeded";
         RetryAfter = retry;

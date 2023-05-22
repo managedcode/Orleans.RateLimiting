@@ -6,14 +6,12 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 
 public class TokenBucketRateLimiterHolder : BaseRateLimiterHolder<ITokenBucketRateLimiterGrain, TokenBucketRateLimiterOptions>
 {
-    public TokenBucketRateLimiterHolder(ITokenBucketRateLimiterGrain grain, IGrainFactory grainFactory) : base(grain,
-        grainFactory)
+    public TokenBucketRateLimiterHolder(ITokenBucketRateLimiterGrain grain, IGrainFactory grainFactory) : base(grain, grainFactory)
     {
     }
-    
-    public TokenBucketRateLimiterHolder(ITokenBucketRateLimiterGrain grain, IGrainFactory grainFactory, TokenBucketRateLimiterOptions options) : base(grain,
-        grainFactory, options)
+
+    public TokenBucketRateLimiterHolder(ITokenBucketRateLimiterGrain grain, IGrainFactory grainFactory, TokenBucketRateLimiterOptions options) : base(grain, grainFactory,
+        options)
     {
     }
-    
 }

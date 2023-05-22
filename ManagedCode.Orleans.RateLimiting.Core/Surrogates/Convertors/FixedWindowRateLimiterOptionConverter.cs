@@ -4,9 +4,7 @@ using Orleans;
 namespace ManagedCode.Orleans.RateLimiting.Core.Surrogates.Convertors;
 
 [RegisterConverter]
-public sealed class
-    FixedWindowRateLimiterOptionConverter : IConverter<FixedWindowRateLimiterOptions,
-        FixedWindowRateLimiterOptionsSurrogate>
+public sealed class FixedWindowRateLimiterOptionConverter : IConverter<FixedWindowRateLimiterOptions, FixedWindowRateLimiterOptionsSurrogate>
 {
     public FixedWindowRateLimiterOptions ConvertFromSurrogate(in FixedWindowRateLimiterOptionsSurrogate surrogate)
     {

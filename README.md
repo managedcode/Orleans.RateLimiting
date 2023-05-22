@@ -33,7 +33,9 @@ Install-Package ManagedCode.Orleans.RateLimiting.Client
 // for Server
 Install-Package ManagedCode.Orleans.RateLimiting.Server
 ```
+
 then add the following to your `SiloHostBuilder` or `ClientBuilder`:
+
 ```csharp
 // for Client
 clientBuilder.AddOrleansRateLimiting();
@@ -43,6 +45,7 @@ siloBuilder.AddOrleansRateLimiting();
 ```
 
 Also if you would like to use incoming filter and **Attributes**, you have to add default options for Limiter:
+
 ```csharp
 //Add default options and IncomingFilter
 siloBuilder.AddOrleansConcurrencyLimiter(options =>
