@@ -137,7 +137,7 @@ var slidingWindowRateLimiter = _factory.GetSlidingWindowRateLimiter("key");
 var tokenBucketRateLimiter = _factory.GetTokenBucketRateLimiter("key");
 ```
 
-### Attrubutes
+### Attrubutes for Grains
 
 You can use attributes to decorate your grain methods and apply rate limiting to them.
 Make sure you check configuration section for default options.
@@ -168,6 +168,60 @@ public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimite
 }
 ```
 
+### Attrubutes for WebAPI
+
+You can define OrleansRateLimiterOptions with specific name.
+``` cs
+builder.Services.AddOrleansRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
+{
+    QueueLimit = 5,
+    PermitLimit = 10,
+    Window = TimeSpan.FromSeconds(1)
+});
+
+builder.Services.AddOrleansRateLimiterOptions("Anonymous", new FixedWindowRateLimiterOptions
+{
+    QueueLimit = 1,
+    PermitLimit = 1,
+    Window = TimeSpan.FromSeconds(1)
+});
+
+builder.Services.AddOrleansRateLimiterOptions("Authorized", new FixedWindowRateLimiterOptions
+{
+    QueueLimit = 2,
+    PermitLimit = 2,
+    Window = TimeSpan.FromSeconds(1)
+});
+        
+```
+
+then add middelvare
+``` cs
+app.UseOrleansIpRateLimiting(); // as earlier as possible
+.....
+app.UseRouting();
+app.UseCors();
+app.MapControllers();
+
+//Authentication should always be placed before Authorization.
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseOrleansUserRateLimiting(); // after Authorization and Authorization
+.....
+```
+
+Finally you can add attributes to controller or single methods:
+``` cs
+[AuthorizedIpRateLimiter("Authorized")]
+[AnonymousIpRateLimiter("Authorized")]
+[InRoleIpRateLimiter("Authorized", "Admin")]
+[HttpGet("get_some")]
+public async Task<ActionResult<string>> GetSome()
+{
+    await Task.Delay(300);
+    return "OK";
+}
+```
 ## Contributing
 
 We welcome contributions to Orleans.RateLimiting!
