@@ -11,20 +11,20 @@ public class TestSiloConfigurations : ISiloConfigurator
     {
         siloBuilder.AddOrleansRateLimiting();
 
-        siloBuilder.Services.AddRateLimiterOptions("ConcurrencyLimiterOptions1", new ConcurrencyLimiterOptions
+        siloBuilder.Services.AddOrleansRateLimiterOptions("ConcurrencyLimiterOptions1", new ConcurrencyLimiterOptions
         {
             PermitLimit = 10,
             QueueLimit = 15
         });
 
-        siloBuilder.Services.AddConcurrencyLimiterOptions("ConcurrencyLimiterOptions2", options =>
+        siloBuilder.Services.AddOrleansConcurrencyLimiterOptions("ConcurrencyLimiterOptions2", options =>
         {
             options.PermitLimit = 2;
             options.QueueLimit = 2;
         });
 
 
-        siloBuilder.Services.AddRateLimiterOptions("FixedWindowRateLimiterOptions1", new FixedWindowRateLimiterOptions
+        siloBuilder.Services.AddOrleansRateLimiterOptions("FixedWindowRateLimiterOptions1", new FixedWindowRateLimiterOptions
         {
             PermitLimit = 10,
             QueueLimit = 15,
@@ -39,7 +39,7 @@ public class TestSiloConfigurations : ISiloConfigurator
         });
 
 
-        siloBuilder.Services.AddRateLimiterOptions("SlidingWindowRateLimiterOptions1", new SlidingWindowRateLimiterOptions
+        siloBuilder.Services.AddOrleansRateLimiterOptions("SlidingWindowRateLimiterOptions1", new SlidingWindowRateLimiterOptions
         {
             PermitLimit = 10,
             QueueLimit = 15,
@@ -54,7 +54,7 @@ public class TestSiloConfigurations : ISiloConfigurator
         });
 
 
-        siloBuilder.Services.AddRateLimiterOptions("TokenBucketRateLimiterOptions1", new TokenBucketRateLimiterOptions
+        siloBuilder.Services.AddOrleansRateLimiterOptions("TokenBucketRateLimiterOptions1", new TokenBucketRateLimiterOptions
         {
             QueueLimit = 10,
             ReplenishmentPeriod = TimeSpan.FromSeconds(1),
