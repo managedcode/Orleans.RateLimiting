@@ -195,7 +195,7 @@ builder.Services.AddOrleansRateLimiterOptions("Authorized", new FixedWindowRateL
         
 ```
 
-then add middelvare
+then add middelware
 ``` cs
 app.UseOrleansIpRateLimiting(); // as earlier as possible
 .....
