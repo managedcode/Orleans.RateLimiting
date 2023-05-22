@@ -5,9 +5,15 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Extensions;
 
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder AddOrleansRateLimiting(this IApplicationBuilder applicationBuilder)
+    public static IApplicationBuilder UseOrleansIpRateLimiting(this IApplicationBuilder applicationBuilder)
     {
-        applicationBuilder.UseMiddleware<RateLimitingMiddleware>();
+        applicationBuilder.UseMiddleware<OrleansIpRateLimitingMiddleware>();
+        return applicationBuilder;
+    }
+    
+    public static IApplicationBuilder UseOrleansUserRateLimiting(this IApplicationBuilder applicationBuilder)
+    {
+        applicationBuilder.UseMiddleware<OrleansUserRateLimitingMiddleware>();
         return applicationBuilder;
     }
 }

@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using ManagedCode.Orleans.RateLimiting.Client.Extensions;
 using ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using Microsoft.AspNetCore.Builder;
@@ -43,7 +44,8 @@ public class HttpHostProgram
         app.MapControllers();
         app.MapHub<TestHub>(nameof(TestHub));
 
-        app.UseMiddleware<RateLimitingMiddleware>();
+        app.UseOrleansIpRateLimiting();
+        app.UseOrleansUserRateLimiting();
         
         app.UseRateLimiter();
         
