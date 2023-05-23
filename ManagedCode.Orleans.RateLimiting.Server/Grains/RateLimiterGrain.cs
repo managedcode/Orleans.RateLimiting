@@ -9,8 +9,6 @@ using Orleans.Concurrency;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-[Reentrant]
-[GrainType($"ManagedCode.${nameof(ConcurrencyLimiterGrain)}")]
 public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimiter : RateLimiter
 {
     protected readonly ILogger _logger;
