@@ -11,17 +11,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="6.10.0"/>
-        <PackageReference Include="ManagedCode.TimeSeries" Version="0.0.17"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0"/>
-        <PackageReference Include="Microsoft.Orleans.Analyzers" Version="7.1.1">
+        <PackageReference Include="FluentAssertions" Version="6.11.0" />
+        <PackageReference Include="ManagedCode.TimeSeries" Version="0.0.18" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
+        <PackageReference Include="Microsoft.Orleans.Analyzers" Version="7.1.2">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Orleans.Serialization" Version="7.1.1"/>
-        <PackageReference Include="Microsoft.Orleans.TestingHost" Version="7.1.1"/>
-        <PackageReference Include="System.Linq.Async" Version="6.0.1"/>
-        <PackageReference Include="xunit" Version="2.4.2"/>
+        <PackageReference Include="Microsoft.Orleans.Serialization" Version="7.1.2" />
+        <PackageReference Include="Microsoft.Orleans.TestingHost" Version="7.1.2" />
+        <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+        <PackageReference Include="xunit" Version="2.4.2" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
@@ -30,28 +30,28 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="coverlet.collector" Version="3.2.0">
+        <PackageReference Include="coverlet.collector" Version="6.0.0">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="coverlet.msbuild" Version="3.2.0">
+        <PackageReference Include="coverlet.msbuild" Version="6.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.5"/>
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.5"/>
-        <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="7.0.5"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0"/>
-        <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.1.1"/>
-        <PackageReference Include="Microsoft.Orleans.Serialization.SystemTextJson" Version="7.1.1"/>
-        <PackageReference Include="Microsoft.Orleans.Serialization.TestKit" Version="7.1.1"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="7.0.5" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.1.2" />
+        <PackageReference Include="Microsoft.Orleans.Serialization.SystemTextJson" Version="7.1.2" />
+        <PackageReference Include="Microsoft.Orleans.Serialization.TestKit" Version="7.1.2" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Client\ManagedCode.Orleans.RateLimiting.Client.csproj"/>
-        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Core\ManagedCode.Orleans.RateLimiting.Core.csproj"/>
-        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Server\ManagedCode.Orleans.RateLimiting.Server.csproj"/>
+        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Client\ManagedCode.Orleans.RateLimiting.Client.csproj" />
+        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Core\ManagedCode.Orleans.RateLimiting.Core.csproj" />
+        <ProjectReference Include="..\ManagedCode.Orleans.RateLimiting.Server\ManagedCode.Orleans.RateLimiting.Server.csproj" />
     </ItemGroup>
 
 
