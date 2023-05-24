@@ -10,56 +10,54 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 
 public class OrleansUserRateLimitingMiddleware : OrleansBaseRateLimitingMiddleware
 {
-    protected OrleansUserRateLimitingMiddleware(ILogger logger, RequestDelegate next, IClusterClient client, IServiceProvider services) : base(logger, next, client,
-        services)
+    public OrleansUserRateLimitingMiddleware(ILogger<OrleansUserRateLimitingMiddleware> logger, IClusterClient client, IServiceProvider services, RequestDelegate next) 
+        : base(logger, next, client, services)
     {
     }
 
 
     protected override void AddLimiters(HttpContext httpContext, GroupLimiterHolder holder)
     {
-        AddAnonymousIpRateLimiter(httpContext, holder);
+        AddAnonymousRateLimiter(httpContext, holder);
 
         // if user is authenticated add in role limiter
-        if (!AddInRoleIpRateLimiter(httpContext, holder))
+        if (!AddInRoleRateLimiter(httpContext, holder))
             // if user is not authenticated add authorized limiter
-            AddAuthorizedIpRateLimiter(httpContext, holder);
+            AddAuthorizedRateLimiter(httpContext, holder);
     }
 
-    private bool AddAnonymousIpRateLimiter(HttpContext httpContext, GroupLimiterHolder holder)
+    private bool AddAnonymousRateLimiter(HttpContext httpContext, GroupLimiterHolder holder)
     {
         if (httpContext.User?.Identity?.IsAuthenticated is not true)
         {
             var attribute = TryGetAttribute<AnonymousIpRateLimiterAttribute>(httpContext);
             if (attribute.HasValue)
-                return holder.AddLimiter(TryGetLimiterHolder(httpContext, CreateKey(httpContext.Request.GetClientIpAddress(), attribute.Value.postfix!),
-                    attribute.Value.postfix!));
+                return holder.AddLimiter(TryGetLimiterHolder(CreateKey(httpContext.Request.GetClientIpAddress(), attribute.Value.postfix!),
+                    attribute.Value.attribute.ConfigurationName));
         }
 
         return false;
     }
 
-    private bool AddAuthorizedIpRateLimiter(HttpContext httpContext, GroupLimiterHolder holder)
+    private bool AddAuthorizedRateLimiter(HttpContext httpContext, GroupLimiterHolder holder)
     {
         if (httpContext.User?.Identity?.IsAuthenticated is true)
         {
             var attribute = TryGetAttribute<AuthorizedIpRateLimiterAttribute>(httpContext);
             if (attribute.HasValue)
-                return holder.AddLimiter(TryGetLimiterHolder(httpContext,
-                    CreateKey(httpContext.Request.GetClientIpAddress(), httpContext.User.Identity.Name!, attribute.Value.postfix!), attribute.Value.postfix!));
+                return holder.AddLimiter(TryGetLimiterHolder(CreateKey(httpContext.Request.GetClientIpAddress(), httpContext.User.Identity.Name ?? "rate-user-name", attribute.Value.postfix!), attribute.Value.attribute.ConfigurationName));
         }
 
         return false;
     }
 
-    private bool AddInRoleIpRateLimiter(HttpContext httpContext, GroupLimiterHolder holder)
+    private bool AddInRoleRateLimiter(HttpContext httpContext, GroupLimiterHolder holder)
     {
         var attribute = TryGetAttribute<InRoleIpRateLimiterAttribute>(httpContext);
         if (attribute.HasValue)
             if (httpContext.User?.Identity?.IsAuthenticated is true && httpContext.User.IsInRole(attribute.Value.attribute.Role))
-                return holder.AddLimiter(TryGetLimiterHolder(httpContext,
-                    CreateKey(httpContext.Request.GetClientIpAddress(), httpContext.User.Identity.Name!, attribute.Value.attribute.Role, attribute.Value.postfix!),
-                    attribute.Value.postfix!));
+                return holder.AddLimiter(TryGetLimiterHolder(CreateKey(httpContext.Request.GetClientIpAddress(), httpContext.User.Identity.Name!, attribute.Value.attribute.Role, attribute.Value.postfix!),
+                    attribute.Value.attribute.ConfigurationName));
 
         return false;
     }

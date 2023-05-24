@@ -82,7 +82,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
         return (attribute, postfix);
     }
 
-    protected ILimiterHolder? TryGetLimiterHolder(HttpContext httpContext, string key, string configurationName)
+    protected ILimiterHolder? TryGetLimiterHolder(string key, string configurationName)
     {
         var limiter = _client.GetRateLimiterByConfig(key, configurationName, _services.GetService<IEnumerable<RateLimiterConfig>>());
 

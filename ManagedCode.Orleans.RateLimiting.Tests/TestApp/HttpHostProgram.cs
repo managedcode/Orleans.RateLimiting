@@ -3,6 +3,7 @@ using ManagedCode.Orleans.RateLimiting.Client.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests.TestApp;
 
@@ -14,11 +15,14 @@ public class HttpHostProgram
 
         builder.Services.AddControllers();
         builder.Services.AddSignalR();
+        builder.Services.AddLogging(log=>log.AddSimpleConsole());
 
+        builder.Services.AddOrleansRateLimiting();
+        
         builder.Services.AddOrleansRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
         {
             QueueLimit = 5,
-            PermitLimit = 10,
+            PermitLimit = 5,
             Window = TimeSpan.FromSeconds(1)
         });
 
@@ -46,7 +50,7 @@ public class HttpHostProgram
         app.UseOrleansIpRateLimiting();
         app.UseOrleansUserRateLimiting();
 
-        app.UseRateLimiter();
+        //app.UseRateLimiter();
 
         app.Run();
     }

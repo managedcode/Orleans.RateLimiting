@@ -13,7 +13,7 @@ public class TestController : ControllerBase
     [HttpGet("authorize")]
     public async Task<ActionResult<string>> Authorize()
     {
-        await Task.Delay(300);
+        await Task.Delay(500);
         return "Authorize";
     }
 }
