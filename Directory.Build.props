@@ -17,8 +17,8 @@
         <RepositoryUrl>https://github.com/managedcode/Orleans.RateLimiting</RepositoryUrl>
         <PackageProjectUrl>https://github.com/managedcode/Orleans.RateLimiting</PackageProjectUrl>
         <Product>Managed Code - Orleans RateLimiting</Product>
-        <Version>0.0.6</Version>
-        <PackageVersion>0.0.6</PackageVersion>
+        <Version>0.0.8</Version>
+        <PackageVersion>0.0.8</PackageVersion>
 
     </PropertyGroup>
     <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
