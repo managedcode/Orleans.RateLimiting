@@ -17,8 +17,8 @@
         <RepositoryUrl>https://github.com/managedcode/Orleans.RateLimiting</RepositoryUrl>
         <PackageProjectUrl>https://github.com/managedcode/Orleans.RateLimiting</PackageProjectUrl>
         <Product>Managed Code - Orleans RateLimiting</Product>
-        <Version>0.0.8</Version>
-        <PackageVersion>0.0.8</PackageVersion>
+        <Version>0.0.9</Version>
+        <PackageVersion>0.0.9</PackageVersion>
 
     </PropertyGroup>
     <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
@@ -29,7 +29,7 @@
         <None Include="$(SolutionDir)\README.md" Pack="true" Visible="false" PackagePath="\"/>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1">
+        <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.39">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

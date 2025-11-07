@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.RateLimiting;
@@ -19,7 +20,7 @@ public static class GrainFactoryExtensions
             ISlidingWindowRateLimiterGrain => factory.GetSlidingWindowRateLimiter(key),
             ITokenBucketRateLimiterGrain => factory.GetTokenBucketRateLimiter(key),
 
-            _ => null //throw new ArgumentException("Unknown rate limiter grain type")
+            _ => throw new ArgumentOutOfRangeException(nameof(T), typeof(T), "Unknown rate limiter grain type")
         };
 
         return limiter;
@@ -27,6 +28,7 @@ public static class GrainFactoryExtensions
 
     public static ILimiterHolder? GetRateLimiterByConfig(this IGrainFactory factory, string key, string configurationName, IEnumerable<RateLimiterConfig> configs)
     {
+        ArgumentNullException.ThrowIfNull(configs);
         var name = configurationName.ToLowerInvariant();
         var option = configs.FirstOrDefault(f => f.Name == name);
         if (option is null)

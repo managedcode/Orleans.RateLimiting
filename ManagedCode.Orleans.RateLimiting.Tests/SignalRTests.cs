@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.Orleans.RateLimiting.Tests.TestApp;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -27,7 +27,7 @@ public class SignalRTests
         {
             var anonymousHub11 = _testApp.CreateSignalRClient(nameof(TestHub));
             await anonymousHub11.StartAsync();
-            anonymousHub11.State.Should().Be(HubConnectionState.Connected);
+            anonymousHub11.State.ShouldBe(HubConnectionState.Connected);
         }
         catch (Exception e)
         {
@@ -37,7 +37,7 @@ public class SignalRTests
         
         var anonymousHub = _testApp.CreateSignalRClient(nameof(TestHub));
         await anonymousHub.StartAsync();
-        anonymousHub.State.Should().Be(HubConnectionState.Connected);
+        anonymousHub.State.ShouldBe(HubConnectionState.Connected);
 
     }
 }

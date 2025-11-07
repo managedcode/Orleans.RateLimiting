@@ -1,12 +1,19 @@
 # Orleans.RateLimiting
 
+[![CI](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/ci.yml/badge.svg)](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/codeql-analysis.yml)
+[![Release](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/release.yml/badge.svg)](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/release.yml)
+
 Orleans.RateLimiting is a library for Microsoft Orleans that provides a set of rate limiting algorithms for controlling
 the flow of requests in your distributed applications.
 It is designed to be easy to use and to integrate with your Orleans-based applications seamlessly.
 With Orleans.RateLimiting, you can ensure your applications handle a safe number of requests without the risk of
 overloading your system resources.
-RateLimiting
-on [learn.microsoft.com](https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0)
+
+> **Heads up!** Orleans.RateLimiting now targets **.NET 9** and uses the latest Orleans 9.2 packages, ensuring compatibility with the newest Orleans primitives and ASP.NET Core 9 runtime.
+
+Learn more about the core rate limiting concepts on
+[learn.microsoft.com](https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-9.0)
 and [devblogs.microsoft.com](https://devblogs.microsoft.com/dotnet/announcing-rate-limiting-for-dotnet/)
 
 ## Features
@@ -21,6 +28,8 @@ and [devblogs.microsoft.com](https://devblogs.microsoft.com/dotnet/announcing-ra
 - Comprehensive documentation and examples
 
 ## Installation
+
+Orleans.RateLimiting ships as a pair of NuGet packages that target .NET 9. Install them from the command line or your favourite IDE:
 
 You can install Orleans.RateLimiting via NuGet Package Manager:
 
@@ -44,7 +53,7 @@ clientBuilder.AddOrleansRateLimiting();
 siloBuilder.AddOrleansRateLimiting();
 ```
 
-Also if you would like to use incoming filter and **Attributes**, you have to add default options for Limiter:
+Also if you would like to use the incoming filter and **Attributes**, you have to add default options for Limiter:
 
 ```csharp
 //Add default options and IncomingFilter
@@ -137,7 +146,7 @@ var slidingWindowRateLimiter = _factory.GetSlidingWindowRateLimiter("key");
 var tokenBucketRateLimiter = _factory.GetTokenBucketRateLimiter("key");
 ```
 
-### Attrubutes for Grains
+### Attributes for Grains
 
 You can use attributes to decorate your grain methods and apply rate limiting to them.
 Make sure you check configuration section for default options.
@@ -168,7 +177,7 @@ public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimite
 }
 ```
 
-### Attrubutes for WebAPI
+### Attributes for WebAPI
 
 You can define OrleansRateLimiterOptions with specific name.
 ``` cs
@@ -195,7 +204,7 @@ builder.Services.AddOrleansRateLimiterOptions("Authorized", new FixedWindowRateL
         
 ```
 
-then add middelware
+then add middleware
 ``` cs
 app.UseOrleansIpRateLimiting(); // as earlier as possible
 .....
@@ -222,8 +231,18 @@ public async Task<ActionResult<string>> GetSome()
     return "OK";
 }
 ```
+## Build & test locally
+
+To work with the repository locally you need the .NET 9 SDK. After cloning the repository run:
+
+```bash
+dotnet restore ManagedCode.Orleans.RateLimiting.sln
+dotnet build ManagedCode.Orleans.RateLimiting.sln --configuration Release
+dotnet test ManagedCode.Orleans.RateLimiting.Tests/ManagedCode.Orleans.RateLimiting.Tests.csproj --configuration Release
+```
+
 ## Contributing
 
 We welcome contributions to Orleans.RateLimiting!
 Feel free to submit issues, feature requests, and pull requests on
-the [GitHub repository](https://github.com/yourusername/Orleans.RateLimiter).
+the [GitHub repository](https://github.com/managedcode/Orleans.RateLimiting).

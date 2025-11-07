@@ -6,11 +6,13 @@ using Orleans;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 
-public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWithConfiguration<TOption> where TGrain : IRateLimiterGrainWithConfiguration<TOption>
+public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWithConfiguration<TOption>
+    where TGrain : IRateLimiterGrainWithConfiguration<TOption>
+    where TOption : class
 {
     private readonly TGrain _grain;
     private readonly IGrainFactory _grainFactory;
-    private readonly TOption _option;
+    private readonly TOption? _option;
 
     internal BaseRateLimiterHolder(TGrain grain, IGrainFactory grainFactory)
     {
@@ -32,7 +34,7 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
             var metadata = await _grain.AcquireAsync(permitCount);
             return new OrleansRateLimitLease(metadata, _grainFactory);
         }
-        catch (TimeoutException timeoutException)
+        catch (TimeoutException)
         {
             return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
         }
@@ -40,12 +42,15 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
 
     public async Task<OrleansRateLimitLease> AcquireAndConfigureAsync(int permitCount = 1)
     {
+        if (_option is null)
+            return await AcquireAsync(permitCount);
+
         try
         {
             var metadata = await _grain.AcquireAndCheckConfigurationAsync(_option);
             return new OrleansRateLimitLease(metadata, _grainFactory);
         }
-        catch (TimeoutException timeoutException)
+        catch (TimeoutException)
         {
             return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
         }
@@ -56,39 +61,40 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
         return _grain.GetStatisticsAsync();
     }
 
-    public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(TOption options)
+    public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(TOption? options)
     {
         if (options is null && _option is null)
             return await AcquireAsync();
 
-        if (_option is not null)
-            options = _option;
+        options ??= _option;
+
+        if (options is null)
+            return await AcquireAsync();
 
         try
         {
             var metadata = await _grain.AcquireAndCheckConfigurationAsync(options);
             return new OrleansRateLimitLease(metadata, _grainFactory);
         }
-        catch (TimeoutException timeoutException)
+        catch (TimeoutException)
         {
             return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
         }
     }
 
-    public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(int permitCount, TOption options)
+    public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(int permitCount, TOption? options)
     {
+        options ??= _option;
+
         if (options is null)
             return await AcquireAsync();
-
-        if (_option is not null)
-            options = _option;
 
         try
         {
             var metadata = await _grain.AcquireAndCheckConfigurationAsync(permitCount, options);
             return new OrleansRateLimitLease(metadata, _grainFactory);
         }
-        catch (TimeoutException timeoutException)
+        catch (TimeoutException)
         {
             return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
         }

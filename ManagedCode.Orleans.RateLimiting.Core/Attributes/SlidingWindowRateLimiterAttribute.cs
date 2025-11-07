@@ -32,7 +32,7 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
     ///     Must be set to a value > 0 by the time these options are passed to the constructor of <see cref="SlidingWindowRateLimiter" />.
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync" /> when not enough resources can be leased.</param>
-    public SlidingWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, int windowinSeconds = default, int permitLimit = default,
+    public SlidingWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string? key = null, int windowinSeconds = default, int permitLimit = default,
         int queueLimit = 0, int segmentsPerWindow = default, bool autoReplenishment = true, QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
         Key = key;
@@ -59,8 +59,9 @@ public class SlidingWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Sl
             };
     }
 
-    public SlidingWindowRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    public SlidingWindowRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string? key = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(configurationName);
         ConfigurationName = configurationName;
         Key = key;
         KeyType = keyType;

@@ -27,7 +27,10 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
 
         if (limiter.HasValue)
         {
-            await using var lease = await limiter.Value.Item1.AcquireAndCheckConfigurationAsync(limiter.Value.Item2);
+            var (holder, options) = limiter.Value;
+            await using var lease = options is null
+                ? await holder.AcquireAsync()
+                : await holder.AcquireAndCheckConfigurationAsync(options);
             if (lease.IsAcquired)
                 await context.Invoke();
             else
@@ -39,7 +42,7 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
         }
     }
 
-    private (ILimiterHolderWithConfiguration<TOptions>, TOptions)? IsRateLimiter(IIncomingGrainCallContext context)
+    private (ILimiterHolderWithConfiguration<TOptions> limiter, TOptions? options)? IsRateLimiter(IIncomingGrainCallContext context)
     {
         if (Attribute.IsDefined(context.ImplementationMethod, typeof(TAttribute)))
         {
@@ -56,14 +59,15 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
         return null;
     }
 
-    private (ILimiterHolderWithConfiguration<TOptions>, TOptions)? CreateRiteLimiter(IIncomingGrainCallContext context, Attribute attribute)
+    private (ILimiterHolderWithConfiguration<TOptions> limiter, TOptions? options)? CreateRiteLimiter(IIncomingGrainCallContext context, Attribute? attribute)
     {
-        var limiterAttribute = (ILimiterAttribute<TOptions>)attribute;
+        if (attribute is not ILimiterAttribute<TOptions> limiterAttribute)
+            return null;
 
         var limiter = limiterAttribute.KeyType switch
         {
-            KeyType.Key => GetLimiter(limiterAttribute.Key),
-            KeyType.GrainType => GetLimiter(context.ImplementationMethod.DeclaringType.FullName),
+            KeyType.Key => string.IsNullOrWhiteSpace(limiterAttribute.Key) ? null : GetLimiter(limiterAttribute.Key),
+            KeyType.GrainType => context.ImplementationMethod.DeclaringType?.FullName is { Length: > 0 } typeName ? GetLimiter(typeName) : null,
             KeyType.GrainId => GetLimiter(context.TargetContext.GrainId.ToString()),
             _ => null
         };
