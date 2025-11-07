@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <LangVersion>12</LangVersion>
         <OutputType>Library</OutputType>
         <Nullable>enable</Nullable>
@@ -18,11 +18,11 @@
 
     <ItemGroup>
 
-        <PackageReference Include="ManagedCode.Communication" Version="8.0.1" />
+        <PackageReference Include="ManagedCode.Communication" Version="9.6.5" />
 
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Orleans.Client" Version="8.1.0" />
-        <PackageReference Include="System.Threading.RateLimiting" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Orleans.Client" Version="9.2.1" />
+        <PackageReference Include="System.Threading.RateLimiting" Version="9.0.10" />
 
     </ItemGroup>
 

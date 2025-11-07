@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using Xunit;
 using Xunit.Abstractions;
@@ -46,7 +46,7 @@ public class WebApiTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 }

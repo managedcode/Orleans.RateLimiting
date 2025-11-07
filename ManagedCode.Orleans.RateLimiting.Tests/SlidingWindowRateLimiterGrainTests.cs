@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces;
 using Xunit;
@@ -40,9 +40,9 @@ public class SlidingWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().Be(count);
-        errors.Should().Be(0);
+        (success + errors).ShouldBe(count);
+        success.ShouldBe(count);
+        errors.ShouldBe(0);
     }
 
     [Fact]
@@ -67,8 +67,8 @@ public class SlidingWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 
     [Fact]
@@ -93,8 +93,8 @@ public class SlidingWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class SlidingWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 }

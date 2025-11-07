@@ -49,7 +49,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
         {
             httpContext.Response.Clear();
             httpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
-            await httpContext.Response.WriteAsJsonAsync(Result.Fail(HttpStatusCode.TooManyRequests, error.ToException()));
+            await httpContext.Response.WriteAsJsonAsync(Result.Fail(error.ToException(), HttpStatusCode.TooManyRequests));
         }
     }
 

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Threading.RateLimiting;
-using FluentAssertions;
+using Shouldly;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.TimeSeries.Summers;
@@ -76,13 +76,13 @@ public class RateLimiterTests
         _outputHelper.WriteLine("CurrentQueuedCount " + statistics2.CurrentQueuedCount);
 
 
-        statistics1.TotalSuccessfulLeases.Should().Be(permit);
-        statistics1.CurrentQueuedCount.Should().Be(extra);
-        statistics1.CurrentAvailablePermits.Should().Be(0);
+        statistics1.TotalSuccessfulLeases.ShouldBe(permit);
+        statistics1.CurrentQueuedCount.ShouldBe(extra);
+        statistics1.CurrentAvailablePermits.ShouldBe(0);
 
-        statistics2.TotalSuccessfulLeases.Should().Be(permit + extra);
-        statistics2.CurrentQueuedCount.Should().Be(0);
-        statistics2.CurrentAvailablePermits.Should().Be(permit);
+        statistics2.TotalSuccessfulLeases.ShouldBe(permit + extra);
+        statistics2.CurrentQueuedCount.ShouldBe(0);
+        statistics2.CurrentAvailablePermits.ShouldBe(permit);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
-        statistics.TotalSuccessfulLeases.Should().Be(success);
+        statistics.TotalSuccessfulLeases.ShouldBe(success);
 
         _outputHelper.WriteLine("Samples " + summer.Samples.Count);
         _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
@@ -138,7 +138,7 @@ public class RateLimiterTests
         foreach (var item in summer.Samples)
             _outputHelper.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().Should().Be(permit);
+        summer.Average().ShouldBe(permit);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
-        statistics.TotalSuccessfulLeases.Should().Be(success);
+        statistics.TotalSuccessfulLeases.ShouldBe(success);
 
         _outputHelper.WriteLine("Samples " + summer.Samples.Count);
         _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
@@ -195,7 +195,7 @@ public class RateLimiterTests
         foreach (var item in summer.Samples)
             _outputHelper.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().Should().Be(permit);
+        summer.Average().ShouldBe(permit);
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
-        statistics.TotalSuccessfulLeases.Should().Be(success);
+        statistics.TotalSuccessfulLeases.ShouldBe(success);
 
         _outputHelper.WriteLine("Samples " + summer.Samples.Count);
         _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
@@ -252,6 +252,6 @@ public class RateLimiterTests
         foreach (var item in summer.Samples)
             _outputHelper.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().Should().Be(permit);
+        summer.Average().ShouldBe(permit);
     }
 }
