@@ -11,7 +11,9 @@ public class GroupLimiterHolder : IAsyncDisposable, IDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await Task.WhenAll(_holders.Values.Where(w => w != null).Select(s => s.DisposeAsync().AsTask()));
+        await Task.WhenAll(_holders.Values
+            .OfType<OrleansRateLimitLease>()
+            .Select(lease => lease.DisposeAsync().AsTask()));
     }
 
     public void Dispose()

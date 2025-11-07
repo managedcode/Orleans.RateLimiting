@@ -15,7 +15,10 @@ public class RateLimitLeaseMetadata
         LeaseId = guid;
         GrainId = grainId;
         IsAcquired = lease.IsAcquired;
-        Metadata = lease.GetAllMetadata().ToArray();
+        Metadata = lease
+            .GetAllMetadata()
+            .Select(static kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value))
+            .ToArray();
     }
 
     public RateLimitLeaseMetadata(GrainId grainId)
@@ -23,7 +26,7 @@ public class RateLimitLeaseMetadata
         LeaseId = Guid.Empty;
         GrainId = grainId;
         IsAcquired = false;
-        Metadata = new[] { new KeyValuePair<string, object>("REASON_PHRASE", "Lease not acquired") };
+        Metadata = new[] { new KeyValuePair<string, object?>("REASON_PHRASE", "Lease not acquired") };
     }
 
     [Id(0)]

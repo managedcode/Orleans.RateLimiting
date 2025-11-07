@@ -62,7 +62,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
 
         // first try to get attribute from endpoint, 
         var attribute = endpoint.Metadata.GetMetadata<T>();
-        var postfix = endpoint.ToString()!;
+        var postfix = endpoint.DisplayName ?? endpoint.ToString() ?? string.Empty;
 
         if (attribute is null)
         {
@@ -72,7 +72,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
             if (controllerType != null)
             {
                 attribute = controllerType.GetCustomAttribute<T>(true);
-                postfix = controllerType.ToString();
+                postfix = controllerType.FullName ?? controllerType.Name;
             }
         }
 
@@ -84,10 +84,17 @@ public abstract class OrleansBaseRateLimitingMiddleware
 
     protected ILimiterHolder? TryGetLimiterHolder(string key, string configurationName)
     {
-        var limiter = _client.GetRateLimiterByConfig(key, configurationName, _services.GetService<IEnumerable<RateLimiterConfig>>());
+        var configs = _services.GetService<IEnumerable<RateLimiterConfig>>();
+        if (configs is null)
+        {
+            _logger.LogError("No rate limiter configurations registered when looking up {Configuration}", configurationName);
+            return null;
+        }
+
+        var limiter = _client.GetRateLimiterByConfig(key, configurationName, configs);
 
         if (limiter is null)
-            _logger.LogError($"Configuration {configurationName} not found for RateLimiter");
+            _logger.LogError("Configuration {Configuration} not found for RateLimiter", configurationName);
 
         return limiter;
     }

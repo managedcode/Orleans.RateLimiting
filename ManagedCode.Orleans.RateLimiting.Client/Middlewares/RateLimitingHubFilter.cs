@@ -20,7 +20,15 @@ public class RateLimitingHubFilter : IHubFilter
 
     public async ValueTask<object?> InvokeMethodAsync(HubInvocationContext invocationContext, Func<HubInvocationContext, ValueTask<object?>> next)
     {
-        var limiter = _client.GetFixedWindowRateLimiter(invocationContext.Context.User.Identity.Name);
+        var userName = invocationContext.Context.User?.Identity?.Name;
+
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            _logger.LogDebug("Skipping rate limiter acquisition because no user identity was provided for {Hub}", invocationContext.Hub?.GetType().FullName);
+            return await next(invocationContext);
+        }
+
+        var limiter = _client.GetFixedWindowRateLimiter(userName);
 
         await using var lease = await limiter.AcquireAsync();
         lease.ThrowIfNotAcquired();
@@ -34,7 +42,7 @@ public class RateLimitingHubFilter : IHubFilter
     }
 
     // Optional method
-    public Task OnDisconnectedAsync(HubLifetimeContext context, Exception exception, Func<HubLifetimeContext, Exception, Task> next)
+    public Task OnDisconnectedAsync(HubLifetimeContext context, Exception? exception, Func<HubLifetimeContext, Exception?, Task> next)
     {
         return next(context, exception);
     }
