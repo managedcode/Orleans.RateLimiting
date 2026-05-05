@@ -17,5 +17,6 @@ internal static class RateLimitMiddlewareConstants
     public const string ConfigurationMetadataKey = "configuration";
     public const string PartitionMetadataKey = "partition";
     public const string PathMetadataKey = "path";
+    public const string RetryAfterTimeSpanFormat = "c";
     public const string SignalRRateLimitedLogMessage = "SignalR invocation {HubMethodName} was rate limited: {Reason}";
 }

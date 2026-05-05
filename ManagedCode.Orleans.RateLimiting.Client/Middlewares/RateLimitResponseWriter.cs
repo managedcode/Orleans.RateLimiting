@@ -18,7 +18,7 @@ internal static class RateLimitResponseWriter
             StatusCodes.Status429TooManyRequests,
             RateLimitMiddlewareConstants.TooManyRequestsError,
             lease.Reason,
-            lease.RetryAfter.ToString(null, CultureInfo.InvariantCulture)));
+            lease.RetryAfter.ToString(RateLimitMiddlewareConstants.RetryAfterTimeSpanFormat, CultureInfo.InvariantCulture)));
     }
 
     private sealed record RateLimitRejectedResponse(int StatusCode, string Error, string Reason, string RetryAfter);
