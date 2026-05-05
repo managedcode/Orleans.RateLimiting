@@ -14,11 +14,18 @@ public sealed class OrleansRequestRateLimitingMiddleware
 {
     private readonly IRateLimitRequestOrchestrator _orchestrator;
     private readonly RequestDelegate _next;
+    private readonly string? _policyName;
 
     public OrleansRequestRateLimitingMiddleware(RequestDelegate next, IRateLimitRequestOrchestrator orchestrator)
+        : this(next, orchestrator, null)
+    {
+    }
+
+    public OrleansRequestRateLimitingMiddleware(RequestDelegate next, IRateLimitRequestOrchestrator orchestrator, string? policyName)
     {
         _next = next;
         _orchestrator = orchestrator;
+        _policyName = policyName;
     }
 
     public async Task Invoke(HttpContext httpContext)
@@ -32,6 +39,9 @@ public sealed class OrleansRequestRateLimitingMiddleware
             return;
         }
 
+        if (httpContext.Response.HasStarted)
+            return;
+
         httpContext.Response.Clear();
         httpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
         await httpContext.Response.WriteAsJsonAsync(new
@@ -43,7 +53,7 @@ public sealed class OrleansRequestRateLimitingMiddleware
         });
     }
 
-    private static RateLimitRequestContext CreateContext(HttpContext httpContext)
+    private RateLimitRequestContext CreateContext(HttpContext httpContext)
     {
         var endpoint = httpContext.GetEndpoint();
         var user = httpContext.User;
@@ -62,7 +72,8 @@ public sealed class OrleansRequestRateLimitingMiddleware
             {
                 ["method"] = httpContext.Request.Method,
                 ["path"] = path
-            }
+            },
+            PolicyName = _policyName
         };
     }
 }

@@ -32,4 +32,7 @@ public sealed class RateLimitRequestRule
 
     [Id(5)]
     public bool Required { get; init; }
+
+    [Id(6)]
+    public string? PolicyName { get; init; }
 }

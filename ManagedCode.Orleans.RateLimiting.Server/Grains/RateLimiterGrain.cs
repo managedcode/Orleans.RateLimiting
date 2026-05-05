@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
@@ -56,11 +57,7 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
 
     public ValueTask ConfigureAsync(TOptions options)
     {
-        foreach (var lease in _rateLimitLeases.Values)
-            lease.Dispose();
-
-        _rateLimitLeases.Clear();
-        RateLimiter.Dispose();
+        DisposeRateLimiter();
         _options = options;
         RateLimiter = CreateDefaultRateLimiter();
         _logger.LogInformation("Configured {LimiterType} with id:{GrainId}", typeof(TLimiter).Name, this.GetPrimaryKeyString());
@@ -70,5 +67,20 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
     public ValueTask<TOptions> GetConfiguration()
     {
         return ValueTask.FromResult(_options);
+    }
+
+    public override Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        DisposeRateLimiter();
+        return base.OnDeactivateAsync(reason, cancellationToken);
+    }
+
+    private void DisposeRateLimiter()
+    {
+        foreach (var lease in _rateLimitLeases.Values)
+            lease.Dispose();
+
+        _rateLimitLeases.Clear();
+        RateLimiter.Dispose();
     }
 }

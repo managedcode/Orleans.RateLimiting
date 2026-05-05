@@ -104,6 +104,7 @@ classDiagram
 ## Current Architecture Decisions
 
 - New application-level limits should use `IRateLimitRequestOrchestrator` and `UseOrleansRequestRateLimiting`.
+- HTTP and SignalR integrations should use named policies when both run in the same application.
 - Attribute-based HTTP middleware remains available for existing controller flows, but it is no longer the only client path.
 - SignalR rate limiting is policy-driven and registered through `AddSignalR().AddOrleansRateLimiting(...)`.
 - Removed commented partitioned/replenishing grain placeholders. Real partitioning now lives at the request orchestration layer, which maps partitions to existing Orleans-backed limiter grains.

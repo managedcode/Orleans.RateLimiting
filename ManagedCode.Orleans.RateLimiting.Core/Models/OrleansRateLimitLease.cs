@@ -13,7 +13,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Core.Models;
 
 [DebuggerDisplay("IsAcquired = {IsAcquired}")]
-public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
+public class OrleansRateLimitLease : IAsyncDisposable
 {
     private readonly GrainId _grainId;
     private readonly Guid _guid;
@@ -33,7 +33,8 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
 
     public string Reason => TryGetMetadata("REASON_PHRASE", out var reason) ? reason ?? string.Empty : "Rate limit exceeded";
 
-    public TimeSpan RetryAfter => TryGetMetadata("RETRY_AFTER", out var reason) ? TimeSpan.Parse(reason ?? TimeSpan.Zero.ToString(), CultureInfo.InvariantCulture) : TimeSpan.Zero;
+    public TimeSpan RetryAfter =>
+        TryGetMetadata("RETRY_AFTER", out var reason) && TimeSpan.TryParse(reason, CultureInfo.InvariantCulture, out var retryAfter) ? retryAfter : TimeSpan.Zero;
 
     public bool IsAcquired { get; init; }
 
@@ -65,12 +66,6 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
             // ignore
         }
 
-        GC.SuppressFinalize(this);
-    }
-
-    public void Dispose()
-    {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
         GC.SuppressFinalize(this);
     }
 

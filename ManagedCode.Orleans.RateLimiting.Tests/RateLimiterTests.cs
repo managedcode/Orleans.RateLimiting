@@ -48,7 +48,7 @@ public class RateLimiterTests
                 Interlocked.Increment(ref errors);
         }));
 
-        _ = Task.WhenAll(tasks);
+        var run = Task.WhenAll(tasks);
         await Task.Delay(TimeSpan.FromSeconds(5));
 
         var statistics1 = await rateLimiter.GetStatisticsAsync();
@@ -78,6 +78,7 @@ public class RateLimiterTests
         statistics2.TotalSuccessfulLeases.ShouldBe(permit + extra);
         statistics2.CurrentQueuedCount.ShouldBe(0);
         statistics2.CurrentAvailablePermits.ShouldBe(permit);
+        await run;
     }
 
     [Test]
@@ -103,7 +104,7 @@ public class RateLimiterTests
         var tasks = Enumerable.Range(0, 1000).Select(s => Task.Run(async () =>
         {
             Interlocked.Increment(ref calls);
-            using (var lease = await rateLimiter.AcquireAsync())
+            await using (var lease = await rateLimiter.AcquireAsync())
             {
                 if (lease.IsAcquired)
                 {
@@ -162,7 +163,7 @@ public class RateLimiterTests
         var tasks = Enumerable.Range(0, 1000).Select(s => Task.Run(async () =>
         {
             Interlocked.Increment(ref calls);
-            using (var lease = await rateLimiter.AcquireAsync())
+            await using (var lease = await rateLimiter.AcquireAsync())
             {
                 if (lease.IsAcquired)
                 {
@@ -221,7 +222,7 @@ public class RateLimiterTests
         var tasks = Enumerable.Range(0, 1000).Select(s => Task.Run(async () =>
         {
             Interlocked.Increment(ref calls);
-            using (var lease = await rateLimiter.AcquireAsync())
+            await using (var lease = await rateLimiter.AcquireAsync())
             {
                 if (lease.IsAcquired)
                 {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Options;
@@ -58,6 +59,46 @@ public sealed class RateLimitRequestOrchestrationOptions
     {
         Rules.Add(new RateLimitRequestRule(kind, configurationName)
         {
+            Required = required,
+            KeyPrefix = keyPrefix
+        });
+
+        return this;
+    }
+
+    public RateLimitRequestOrchestrationOptions AddToPolicy(
+        string policyName,
+        RateLimitPartitionKind kind,
+        string configurationName,
+        bool required = false,
+        string? keyPrefix = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(policyName);
+
+        Rules.Add(new RateLimitRequestRule(kind, configurationName)
+        {
+            PolicyName = policyName,
+            Required = required,
+            KeyPrefix = keyPrefix
+        });
+
+        return this;
+    }
+
+    public RateLimitRequestOrchestrationOptions AddCustomToPolicy(
+        string policyName,
+        string configurationName,
+        string metadataKey,
+        bool required = false,
+        string? keyPrefix = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(policyName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(metadataKey);
+
+        Rules.Add(new RateLimitRequestRule(RateLimitPartitionKind.Custom, configurationName)
+        {
+            PolicyName = policyName,
+            MetadataKey = metadataKey,
             Required = required,
             KeyPrefix = keyPrefix
         });

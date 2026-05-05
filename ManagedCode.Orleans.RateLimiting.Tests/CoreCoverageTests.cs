@@ -102,7 +102,6 @@ public class CoreCoverageTests
         new RateLimitExceededException("limited").Reason.ShouldBe("limited");
         new RateLimitExceededException(TimeSpan.FromSeconds(3)).RetryAfter.ShouldBe(TimeSpan.FromSeconds(3));
 
-        lease.Dispose();
         await lease.DisposeAsync();
     }
 
@@ -138,12 +137,14 @@ public class CoreCoverageTests
         var userPartition = new RateLimitRequestPartition(RateLimitPartitionKind.User, context.UserId!, "user-policy");
         var groupPartition = new RateLimitRequestPartition(RateLimitPartitionKind.Group, context.GroupId!);
         var userRule = new RateLimitRequestRule(RateLimitPartitionKind.User, "user-policy") { Required = true };
+        var signalRRule = new RateLimitRequestRule(RateLimitPartitionKind.User, "hub-policy") { PolicyName = "SignalR" };
 
         context.Metadata["route"].ShouldBe("/checkout");
         userPartition.ToString().ShouldBe("User:user-policy:user-1");
         groupPartition.ToString().ShouldBe("Group:group-a");
         userRule.ConfigurationName.ShouldBe("user-policy");
         userRule.Required.ShouldBeTrue();
+        signalRRule.PolicyName.ShouldBe("SignalR");
     }
 
     [Test]
@@ -176,6 +177,7 @@ public class CoreCoverageTests
         holder.Count.ShouldBe(3);
         var lease = await holder.AcquireAsync();
         lease.ShouldBeNull();
+        await Should.ThrowAsync<InvalidOperationException>(async () => await holder.AcquireAsync());
     }
 
     [Test]
@@ -206,5 +208,41 @@ public class CoreCoverageTests
 
         await Should.ThrowAsync<RateLimitConfigurationNotFoundException>(async () =>
             await orchestrator.CreateLimiterGroupAsync(new RateLimitRequestContext { OperationName = "checkout", UserId = "user-1" }));
+    }
+
+    [Test]
+    public async Task RequestOrchestratorSeparatesNamedPolicies()
+    {
+        var options = new RateLimitRequestOrchestrationOptions()
+            .AddUser("http", required: true)
+            .AddToPolicy("SignalR", RateLimitPartitionKind.User, "signalr", required: true);
+
+        var configs = new RateLimiterConfig[]
+        {
+            new("http", new FixedWindowRateLimiterOptions { PermitLimit = 10, QueueLimit = 0, Window = TimeSpan.FromSeconds(1) }),
+            new("signalr", new FixedWindowRateLimiterOptions { PermitLimit = 10, QueueLimit = 0, Window = TimeSpan.FromSeconds(1) })
+        };
+
+        var orchestrator = new DefaultRateLimitRequestOrchestrator(
+            _testApp.Cluster.Client,
+            configs,
+            [new OptionsRateLimitRequestPolicy(Options.Create(options))],
+            new DefaultRateLimitRequestKeyResolver());
+
+        await using var httpHolder = await orchestrator.CreateLimiterGroupAsync(new RateLimitRequestContext
+        {
+            OperationName = "checkout",
+            UserId = "user-1"
+        });
+
+        await using var signalRHolder = await orchestrator.CreateLimiterGroupAsync(new RateLimitRequestContext
+        {
+            OperationName = "DoTest",
+            UserId = "user-1",
+            PolicyName = "SignalR"
+        });
+
+        httpHolder.Count.ShouldBe(1);
+        signalRHolder.Count.ShouldBe(1);
     }
 }

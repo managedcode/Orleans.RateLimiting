@@ -46,6 +46,9 @@ public abstract class OrleansBaseRateLimitingMiddleware
         }
         else
         {
+            if (httpContext.Response.HasStarted)
+                return;
+
             httpContext.Response.Clear();
             httpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
             await httpContext.Response.WriteAsJsonAsync(new
@@ -58,7 +61,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
         }
     }
 
-    protected (T attribute, string? postfix)? TryGetAttribute<T>(HttpContext httpContext) where T : Attribute, IRateLimiterPolicy
+    protected static (T attribute, string? postfix)? TryGetAttribute<T>(HttpContext httpContext) where T : Attribute, IRateLimiterPolicy
     {
         var endpoint = httpContext.GetEndpoint();
 
@@ -97,7 +100,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
         return limiter;
     }
 
-    protected string CreateKey(params string[] parts)
+    protected static string CreateKey(params string[] parts)
     {
         return string.Join(":", parts);
     }

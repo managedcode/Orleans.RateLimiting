@@ -131,12 +131,25 @@ builder.Services.AddOrleansRateLimiting(options =>
 });
 ```
 
+Rules without a policy name apply to the default request pipeline. Use named policies when different surfaces need independent limits.
+
+```csharp
+builder.Services.AddOrleansRateLimiting(options =>
+{
+    options.AddToPolicy("checkout-api", RateLimitPartitionKind.User, "user-checkout", required: true);
+    options.AddToPolicy("checkout-api", RateLimitPartitionKind.Group, "group-checkout");
+});
+
+app.UseOrleansRequestRateLimiting("checkout-api");
+```
+
 The default `IRateLimitRequestOrchestrator` uses registered `IRateLimitRequestPolicy` instances, `IRateLimitRequestKeyResolver`, named `RateLimiterConfig` values, and Orleans grains to build a `GroupLimiterHolder`.
 
 ```csharp
 var request = new RateLimitRequestContext
 {
     OperationName = "checkout",
+    PolicyName = "checkout-api",
     UserId = "user-123",
     GroupId = "group-a",
     TenantId = "tenant-main",
@@ -260,7 +273,7 @@ builder.Services
     .AddOrleansRateLimiting("SignalR", RateLimitPartitionKind.User);
 ```
 
-The built-in hub filter builds a `RateLimitRequestContext` from hub method name, user identifier, claims, IP address, and hub resource name.
+The built-in hub filter uses a named SignalR policy by default, so hub rules do not bleed into HTTP request middleware rules. It builds a `RateLimitRequestContext` from hub method name, user identifier, claims, IP address, and hub resource name.
 
 ## Development
 

@@ -4,6 +4,8 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Options;
 
 public sealed class SignalRRateLimitingOptions
 {
+    public string PolicyName { get; set; } = "SignalR";
+
     public string ConfigurationName { get; set; } = "SignalR";
 
     public RateLimitPartitionKind PartitionKind { get; set; } = RateLimitPartitionKind.User;

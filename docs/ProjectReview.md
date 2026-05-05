@@ -26,6 +26,8 @@ Date: 2026-05-05
 - Added first-class request partitions for user, group, tenant, role, IP address, endpoint, grain, and custom metadata keys.
 - Added `UseOrleansRequestRateLimiting` for ASP.NET Core request pipelines.
 - Reworked SignalR rate limiting to use the orchestration pipeline and public SignalR registration.
+- Added named orchestration policies so HTTP request middleware and SignalR filters do not share limits accidentally.
+- Added deactivation cleanup for limiter grains and async-only lease/group disposal to avoid sync-over-async release paths.
 - Removed commented-out partitioned/replenishing grain placeholders.
 - Switched Core and Server projects from Web SDK to library SDK.
 - Removed unnecessary Client package references after .NET 10 pruning.
@@ -38,6 +40,6 @@ Date: 2026-05-05
 
 - Build: passed on .NET SDK 10.0.201 with 0 warnings.
 - Restore: passed with central package management.
-- Tests: 31 passed, 0 failed.
-- Coverage: 88.02% line, 74.52% branch, 91.13% method.
+- Tests: 32 passed, 0 failed.
+- Coverage: 86.77% line, 74.67% branch, 90.72% method.
 - Pack: Core, Client, and Server packages were created as `10.0.0` packages in `artifacts/packages`.

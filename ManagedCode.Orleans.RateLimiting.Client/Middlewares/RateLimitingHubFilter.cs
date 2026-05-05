@@ -75,7 +75,8 @@ public class RateLimitingHubFilter : IHubFilter
                 ["method"] = invocationContext.HubMethodName,
                 ["configuration"] = _options.ConfigurationName,
                 ["partition"] = _options.PartitionKind.ToString()
-            }
+            },
+            PolicyName = _options.PolicyName
         };
     }
 }

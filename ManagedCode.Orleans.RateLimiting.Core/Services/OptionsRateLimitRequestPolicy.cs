@@ -21,6 +21,13 @@ public sealed class OptionsRateLimitRequestPolicy : IRateLimitRequestPolicy
     public ValueTask<IReadOnlyList<RateLimitRequestRule>> GetRulesAsync(RateLimitRequestContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult<IReadOnlyList<RateLimitRequestRule>>(_options.Value.Rules.ToArray());
+        var policyName = NormalizePolicyName(context.PolicyName);
+        var rules = _options.Value.Rules.Where(rule => NormalizePolicyName(rule.PolicyName) == policyName).ToArray();
+        return ValueTask.FromResult<IReadOnlyList<RateLimitRequestRule>>(rules);
+    }
+
+    private static string NormalizePolicyName(string? policyName)
+    {
+        return string.IsNullOrWhiteSpace(policyName) ? string.Empty : policyName.Trim().ToUpperInvariant();
     }
 }

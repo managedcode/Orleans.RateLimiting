@@ -29,4 +29,7 @@ public sealed class RateLimitRequestContext
 
     [Id(7)]
     public Dictionary<string, string> Metadata { get; init; } = new();
+
+    [Id(8)]
+    public string? PolicyName { get; init; }
 }
