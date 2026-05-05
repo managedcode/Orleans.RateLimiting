@@ -27,6 +27,8 @@ public sealed class RateLimitRequestPartition
 
     public override string ToString()
     {
-        return ConfigurationName is null ? $"{Kind}:{Key}" : $"{Kind}:{ConfigurationName}:{Key}";
+        return ConfigurationName is null
+            ? RateLimitPartitionKeyFormatter.Join(Kind, Key)
+            : RateLimitPartitionKeyFormatter.Join(Kind, ConfigurationName, Key);
     }
 }

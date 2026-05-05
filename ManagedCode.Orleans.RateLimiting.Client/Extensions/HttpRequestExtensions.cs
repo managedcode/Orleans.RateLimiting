@@ -7,11 +7,16 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Extensions;
 
 public static class HttpRequestExtensions
 {
+    private const char CsvSeparator = ',';
+    private const string RealIpHeaderName = "X-Real-IP";
+    private const string ForwardedForHeaderName = "X-Forwarded-For";
+    private const string RemoteAddressHeaderName = "REMOTE_ADDR";
+
     private static readonly string[] DefaultIpHeaders =
     [
-        "X-Real-IP",
-        "X-Forwarded-For",
-        "REMOTE_ADDR"
+        RealIpHeaderName,
+        ForwardedForHeaderName,
+        RemoteAddressHeaderName
     ];
 
     public static string GetClientIpAddress(this HttpRequest request)
@@ -59,6 +64,6 @@ public static class HttpRequestExtensions
         if (string.IsNullOrWhiteSpace(csvList))
             return Enumerable.Empty<string>();
 
-        return csvList.TrimEnd(',').Split(',').Select(s => s.Trim());
+        return csvList.TrimEnd(CsvSeparator).Split(CsvSeparator).Select(s => s.Trim());
     }
 }

@@ -34,7 +34,7 @@ public sealed class DefaultRateLimitRequestKeyResolver : IRateLimitRequestKeyRes
         if (string.IsNullOrWhiteSpace(rule.KeyPrefix))
             return ValueTask.FromResult<string?>(key);
 
-        return ValueTask.FromResult<string?>($"{rule.KeyPrefix}:{key}");
+        return ValueTask.FromResult<string?>(RateLimitPartitionKeyFormatter.Join(rule.KeyPrefix, key));
     }
 
     private static string? ResolveCustomKey(RateLimitRequestContext context, RateLimitRequestRule rule)

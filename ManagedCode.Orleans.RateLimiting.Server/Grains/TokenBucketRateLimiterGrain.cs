@@ -10,7 +10,7 @@ using Orleans.Concurrency;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
-[GrainType($"ManagedCode.${nameof(TokenBucketRateLimiterGrain)}")]
+[GrainType(RateLimiterGrainTypeNames.TokenBucketRateLimiter)]
 public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimiter, TokenBucketRateLimiterOptions>, ITokenBucketRateLimiterGrain
 {
     public TokenBucketRateLimiterGrain(ILogger<TokenBucketRateLimiterGrain> logger, IOptions<TokenBucketRateLimiterOptions> options) : base(logger, options.Value)

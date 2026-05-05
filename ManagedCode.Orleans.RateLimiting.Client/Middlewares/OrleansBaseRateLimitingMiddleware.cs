@@ -6,6 +6,7 @@ using ManagedCode.Orleans.RateLimiting.Client.Attributes;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
+using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection;
@@ -89,6 +90,6 @@ public abstract class OrleansBaseRateLimitingMiddleware
 
     protected static string CreateKey(params string[] parts)
     {
-        return string.Join(RateLimitMiddlewareConstants.KeySeparator, parts);
+        return RateLimitPartitionKeyFormatter.Join(parts);
     }
 }

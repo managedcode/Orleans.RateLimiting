@@ -10,7 +10,7 @@ public sealed class RateLimitPartitionKeyNotFoundException : Exception
     }
 
     public RateLimitPartitionKeyNotFoundException(RateLimitPartitionKind kind)
-        : base($"Rate limit partition key for '{kind}' was not found.")
+        : base(RateLimiterExceptionMessages.PartitionKeyNotFound(kind))
     {
         Kind = kind;
     }

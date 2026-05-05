@@ -10,7 +10,7 @@ using Orleans.Concurrency;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
-[GrainType($"ManagedCode.${nameof(ConcurrencyLimiterGrain)}")]
+[GrainType(RateLimiterGrainTypeNames.ConcurrencyLimiter)]
 public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain
 {
     public ConcurrencyLimiterGrain(ILogger<ConcurrencyLimiterGrain> logger, IOptions<ConcurrencyLimiterOptions> options) : base(logger, options.Value)

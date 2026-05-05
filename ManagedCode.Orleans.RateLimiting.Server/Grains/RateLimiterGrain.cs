@@ -6,14 +6,21 @@ using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using Microsoft.Extensions.Logging;
 using Orleans;
-using Orleans.Concurrency;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimiter : RateLimiter
+public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain, IDisposable where TLimiter : RateLimiter
 {
+    private const int NoActiveAcquires = 0;
+    private const int SingleSemaphoreSlot = 1;
+
     private readonly ConcurrentDictionary<Guid, RateLimitLease> _rateLimitLeases = new();
+    private readonly SemaphoreSlim _configurationLock = new(SingleSemaphoreSlot, SingleSemaphoreSlot);
     private readonly ILogger _logger;
+    private readonly object _limiterLifetimeSync = new();
+    private int _activeAcquireCount;
+    private bool _configurationLockDisposed;
+    private TaskCompletionSource? _noActiveAcquires;
     private TOptions _options;
 
     protected RateLimiterGrain(ILogger logger, TOptions options)
@@ -31,16 +38,24 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
 
     public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1)
     {
-        var leaseId = Guid.NewGuid();
-        var lease = await RateLimiter.AcquireAsync(permitCount);
-        var metadata = new RateLimitLeaseMetadata(leaseId, this.GetGrainId(), lease);
+        await EnterAcquireAsync();
+        try
+        {
+            var leaseId = Guid.NewGuid();
+            var lease = await RateLimiter.AcquireAsync(permitCount);
+            var metadata = new RateLimitLeaseMetadata(leaseId, this.GetGrainId(), lease);
 
-        if (lease.IsAcquired)
-            _rateLimitLeases.TryAdd(leaseId, lease);
-        else
-            lease.Dispose();
+            if (lease.IsAcquired)
+                _rateLimitLeases.TryAdd(leaseId, lease);
+            else
+                lease.Dispose();
 
-        return metadata;
+            return metadata;
+        }
+        finally
+        {
+            ExitAcquire();
+        }
     }
 
     public ValueTask ReleaseLease(Guid leaseId)
@@ -55,13 +70,21 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
         return ValueTask.FromResult(RateLimiter.GetStatistics());
     }
 
-    public ValueTask ConfigureAsync(TOptions options)
+    public async ValueTask ConfigureAsync(TOptions options)
     {
-        DisposeRateLimiter();
-        _options = options;
-        RateLimiter = CreateDefaultRateLimiter();
-        _logger.LogInformation("Configured {LimiterType} with id:{GrainId}", typeof(TLimiter).Name, this.GetPrimaryKeyString());
-        return ValueTask.CompletedTask;
+        await _configurationLock.WaitAsync();
+        try
+        {
+            await WaitForActiveAcquiresAsync();
+            DisposeRateLimiter();
+            _options = options;
+            RateLimiter = CreateDefaultRateLimiter();
+            _logger.LogInformation(RateLimiterLogMessages.ConfiguredLimiter, typeof(TLimiter).Name, this.GetPrimaryKeyString());
+        }
+        finally
+        {
+            _configurationLock.Release();
+        }
     }
 
     public ValueTask<TOptions> GetConfiguration()
@@ -69,10 +92,77 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
         return ValueTask.FromResult(_options);
     }
 
-    public override Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await _configurationLock.WaitAsync(cancellationToken);
+        try
+        {
+            await WaitForActiveAcquiresAsync(cancellationToken);
+            DisposeRateLimiter();
+        }
+        finally
+        {
+            _configurationLock.Release();
+            DisposeConfigurationLock();
+        }
+
+        await base.OnDeactivateAsync(reason, cancellationToken);
+    }
+
+    public void Dispose()
     {
         DisposeRateLimiter();
-        return base.OnDeactivateAsync(reason, cancellationToken);
+        DisposeConfigurationLock();
+        GC.SuppressFinalize(this);
+    }
+
+    private async Task EnterAcquireAsync()
+    {
+        await _configurationLock.WaitAsync();
+        try
+        {
+            lock (_limiterLifetimeSync)
+            {
+                _activeAcquireCount++;
+            }
+        }
+        finally
+        {
+            _configurationLock.Release();
+        }
+    }
+
+    private void ExitAcquire()
+    {
+        TaskCompletionSource? completed = null;
+
+        lock (_limiterLifetimeSync)
+        {
+            _activeAcquireCount--;
+            if (_activeAcquireCount == NoActiveAcquires)
+            {
+                completed = _noActiveAcquires;
+                _noActiveAcquires = null;
+            }
+        }
+
+        completed?.TrySetResult();
+    }
+
+    private Task WaitForActiveAcquiresAsync(CancellationToken cancellationToken = default)
+    {
+        Task waitTask;
+
+        lock (_limiterLifetimeSync)
+        {
+            if (_activeAcquireCount == NoActiveAcquires)
+                return Task.CompletedTask;
+
+            _noActiveAcquires ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            waitTask = _noActiveAcquires.Task;
+        }
+
+        return waitTask.WaitAsync(cancellationToken);
     }
 
     private void DisposeRateLimiter()
@@ -82,5 +172,14 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
 
         _rateLimitLeases.Clear();
         RateLimiter.Dispose();
+    }
+
+    private void DisposeConfigurationLock()
+    {
+        if (_configurationLockDisposed)
+            return;
+
+        _configurationLockDisposed = true;
+        _configurationLock.Dispose();
     }
 }

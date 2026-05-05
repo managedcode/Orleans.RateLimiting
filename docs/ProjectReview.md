@@ -40,6 +40,6 @@ Date: 2026-05-05
 
 - Build: passed on .NET SDK 10.0.201 with 0 warnings.
 - Restore: passed with central package management.
-- Tests: 32 passed, 0 failed.
-- Coverage: 86.77% line, 74.67% branch, 90.72% method.
+- Tests: 33 passed, 0 failed.
+- Coverage: 87.82% line, 74.68% branch, 90.46% method.
 - Pack: Core, Client, and Server packages were created as `10.0.0` packages in `artifacts/packages`.

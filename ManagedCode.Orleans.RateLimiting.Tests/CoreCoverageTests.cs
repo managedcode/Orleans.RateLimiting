@@ -19,6 +19,11 @@ namespace ManagedCode.Orleans.RateLimiting.Tests;
 [ClassDataSource<TestClusterApplication>(Shared = SharedType.PerTestSession)]
 public class CoreCoverageTests
 {
+    private const string ColonBearingConfigurationName = "user:policy";
+    private const string ColonBearingKey = "tenant:user";
+    private const string SplitConfigurationName = "user";
+    private const string SplitKey = "policy:tenant:user";
+
     private readonly TestClusterApplication _testApp;
 
     public CoreCoverageTests(TestClusterApplication testApp)
@@ -145,6 +150,16 @@ public class CoreCoverageTests
         userRule.ConfigurationName.ShouldBe("user-policy");
         userRule.Required.ShouldBeTrue();
         signalRRule.PolicyName.ShouldBe("SignalR");
+    }
+
+    [Test]
+    public void RequestPartitionEscapesSeparatorsInCompositeKeys()
+    {
+        var colonBearingPartition = new RateLimitRequestPartition(RateLimitPartitionKind.User, ColonBearingKey, ColonBearingConfigurationName);
+        var splitPartition = new RateLimitRequestPartition(RateLimitPartitionKind.User, SplitKey, SplitConfigurationName);
+
+        colonBearingPartition.ToString().ShouldNotBe(splitPartition.ToString());
+        colonBearingPartition.ToString().ShouldContain(RateLimitPartitionKeyDefaults.EscapedSeparator);
     }
 
     [Test]

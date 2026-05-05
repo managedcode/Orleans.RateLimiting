@@ -12,7 +12,7 @@ public class RateLimitLeaseMetadata
 {
     public RateLimitLeaseMetadata(Guid leaseId, GrainId grainId, RateLimitLease lease)
     {
-        LeaseId = leaseId;
+        LeaseId = lease.IsAcquired ? leaseId : Guid.Empty;
         GrainId = grainId;
         IsAcquired = lease.IsAcquired;
         Metadata = lease.GetAllMetadata().ToArray();

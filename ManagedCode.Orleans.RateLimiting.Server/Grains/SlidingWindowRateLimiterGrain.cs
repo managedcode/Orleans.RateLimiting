@@ -10,7 +10,7 @@ using Orleans.Concurrency;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [Reentrant]
-[GrainType($"ManagedCode.${nameof(SlidingWindowRateLimiterGrain)}")]
+[GrainType(RateLimiterGrainTypeNames.SlidingWindowRateLimiter)]
 public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain
 {
     public SlidingWindowRateLimiterGrain(ILogger<SlidingWindowRateLimiterGrain> logger, IOptions<SlidingWindowRateLimiterOptions> options) : base(logger, options.Value)

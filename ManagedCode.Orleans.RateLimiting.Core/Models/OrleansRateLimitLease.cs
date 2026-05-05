@@ -60,16 +60,14 @@ public class OrleansRateLimitLease : IAsyncDisposable
         {
             await GrainFactory.GetGrain(_grainId).AsReference<IRateLimiterGrain>().ReleaseLease(_guid);
         }
-        catch (TimeoutException)
+        catch
         {
-            //ignore
+            // Lease release is best-effort during shutdown, timeout, or deactivation races.
         }
-        catch (AggregateException ex) when (ex.InnerException is TimeoutException)
+        finally
         {
-            // ignore
+            GC.SuppressFinalize(this);
         }
-
-        GC.SuppressFinalize(this);
     }
 
     public void ThrowIfNotAcquired([CallerMemberName] string? caller = null, [CallerLineNumber] int? lineNumber = null, [CallerFilePath] string? filePath = null)

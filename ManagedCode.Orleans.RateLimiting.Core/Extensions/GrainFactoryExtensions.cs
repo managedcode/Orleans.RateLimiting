@@ -19,7 +19,7 @@ public static class GrainFactoryExtensions
             var type when type == typeof(ISlidingWindowRateLimiterGrain) => factory.GetSlidingWindowRateLimiter(key),
             var type when type == typeof(ITokenBucketRateLimiterGrain) => factory.GetTokenBucketRateLimiter(key),
 
-            _ => throw new System.NotSupportedException($"Rate limiter grain type '{typeof(T).FullName}' is not supported.")
+            _ => throw new System.NotSupportedException(RateLimiterLogMessages.UnsupportedGrainType(typeof(T).FullName))
         };
     }
 

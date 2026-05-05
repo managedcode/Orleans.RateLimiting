@@ -34,7 +34,7 @@ public class RateLimitingHubFilter : IHubFilter
         var lease = await holder.AcquireAsync();
         if (lease is not null)
         {
-            _logger.LogInformation("SignalR invocation {HubMethodName} was rate limited: {Reason}", invocationContext.HubMethodName, lease.Reason);
+            _logger.LogInformation(RateLimitMiddlewareConstants.SignalRRateLimitedLogMessage, invocationContext.HubMethodName, lease.Reason);
             throw new RateLimitExceededException(lease.Reason, lease.RetryAfter);
         }
 

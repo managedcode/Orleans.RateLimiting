@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Globalization;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using Microsoft.AspNetCore.Http;
 
@@ -17,7 +18,7 @@ internal static class RateLimitResponseWriter
             StatusCodes.Status429TooManyRequests,
             RateLimitMiddlewareConstants.TooManyRequestsError,
             lease.Reason,
-            lease.RetryAfter.ToString()));
+            lease.RetryAfter.ToString(null, CultureInfo.InvariantCulture)));
     }
 
     private sealed record RateLimitRejectedResponse(int StatusCode, string Error, string Reason, string RetryAfter);

@@ -1,4 +1,5 @@
 using System;
+using System.Security.Claims;
 using ManagedCode.Orleans.RateLimiting.Client.Attributes;
 using ManagedCode.Orleans.RateLimiting.Client.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
@@ -45,7 +46,7 @@ public class OrleansUserRateLimitingMiddleware : OrleansBaseRateLimitingMiddlewa
         {
             var attribute = TryGetAttribute<AuthorizedIpRateLimiterAttribute>(httpContext);
             if (attribute.HasValue)
-                return holder.AddLimiter(TryGetLimiterHolder(CreateKey(httpContext.Request.GetClientIpAddress(), httpContext.User.Identity.Name ?? "rate-user-name", attribute.Value.postfix!), attribute.Value.attribute.ConfigurationName));
+                return holder.AddLimiter(TryGetLimiterHolder(CreateKey(httpContext.Request.GetClientIpAddress(), GetAuthenticatedUserKey(httpContext), attribute.Value.postfix!), attribute.Value.attribute.ConfigurationName));
         }
 
         return false;
@@ -56,9 +57,16 @@ public class OrleansUserRateLimitingMiddleware : OrleansBaseRateLimitingMiddlewa
         var attribute = TryGetAttribute<InRoleIpRateLimiterAttribute>(httpContext);
         if (attribute.HasValue)
             if (httpContext.User?.Identity?.IsAuthenticated is true && httpContext.User.IsInRole(attribute.Value.attribute.Role))
-                return holder.AddLimiter(TryGetLimiterHolder(CreateKey(httpContext.Request.GetClientIpAddress(), httpContext.User.Identity.Name!, attribute.Value.attribute.Role, attribute.Value.postfix!),
+                return holder.AddLimiter(TryGetLimiterHolder(CreateKey(httpContext.Request.GetClientIpAddress(), GetAuthenticatedUserKey(httpContext), attribute.Value.attribute.Role, attribute.Value.postfix!),
                     attribute.Value.attribute.ConfigurationName));
 
         return false;
+    }
+
+    private static string GetAuthenticatedUserKey(HttpContext httpContext)
+    {
+        return httpContext.User.Identity?.Name
+               ?? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+               ?? RateLimitMiddlewareConstants.UnknownAuthenticatedUserKey;
     }
 }

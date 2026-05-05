@@ -9,7 +9,7 @@ public sealed class RateLimitConfigurationNotFoundException : Exception
     }
 
     public RateLimitConfigurationNotFoundException(string configurationName)
-        : base($"Rate limiter configuration '{configurationName}' was not found.")
+        : base(RateLimiterExceptionMessages.ConfigurationNotFound(configurationName))
     {
         ConfigurationName = configurationName;
     }
