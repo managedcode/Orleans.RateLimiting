@@ -131,6 +131,7 @@ Skill-management rules:
 - Keep public contracts explicit and stable.
 - Prefer composition over inheritance unless inheritance is already the local pattern or is justified.
 - Avoid magic values. Use named constants, options, value objects, or documented defaults.
+- Do not introduce raw string or numeric literals in code. Extract them to named constants, static readonly fields, options, or documented defaults before use.
 - Keep serialization and Orleans compatibility in mind when changing grain contracts, attributes, models, or surrogates.
 - Avoid adding dependencies unless the value is clear and the dependency belongs at the affected layer.
 
@@ -171,3 +172,4 @@ Ask first:
 - Do not push branches from the agent unless explicitly requested.
 - Do not introduce xUnit or FluentAssertions in new test work.
 - Do not leave AGENTS template placeholders or placeholder paths.
+- Do not add string or numeric literals directly in code; use named constants instead.
