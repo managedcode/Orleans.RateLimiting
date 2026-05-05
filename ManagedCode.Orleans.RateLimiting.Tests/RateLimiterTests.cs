@@ -1,27 +1,22 @@
 using System.Diagnostics;
 using System.Threading.RateLimiting;
-using FluentAssertions;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.TimeSeries.Summers;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests;
 
-[Collection(nameof(TestClusterApplication))]
+[ClassDataSource<TestClusterApplication>(Shared = SharedType.PerTestSession)]
 public class RateLimiterTests
 {
-    private readonly ITestOutputHelper _outputHelper;
     private readonly TestClusterApplication _testApp;
 
-    public RateLimiterTests(TestClusterApplication testApp, ITestOutputHelper outputHelper)
+    public RateLimiterTests(TestClusterApplication testApp)
     {
         _testApp = testApp;
-        _outputHelper = outputHelper;
     }
 
-    [Fact]
+    [Test]
     public async Task GetConcurrencyLimiterTests()
     {
         var permit = 20;
@@ -59,33 +54,33 @@ public class RateLimiterTests
         await Task.Delay(TimeSpan.FromSeconds(5));
 
         var statistics1 = await rateLimiter.GetStatisticsAsync();
-        _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics1.TotalSuccessfulLeases);
-        _outputHelper.WriteLine("TotalFailedLeases " + statistics1.TotalFailedLeases);
-        _outputHelper.WriteLine("CurrentAvailablePermits " + statistics1.CurrentAvailablePermits);
-        _outputHelper.WriteLine("CurrentQueuedCount " + statistics1.CurrentQueuedCount);
+        Console.WriteLine("TotalSuccessfulLeases " + statistics1.TotalSuccessfulLeases);
+        Console.WriteLine("TotalFailedLeases " + statistics1.TotalFailedLeases);
+        Console.WriteLine("CurrentAvailablePermits " + statistics1.CurrentAvailablePermits);
+        Console.WriteLine("CurrentQueuedCount " + statistics1.CurrentQueuedCount);
 
         token1.Cancel();
 
         await Task.Delay(TimeSpan.FromSeconds(10));
-        _outputHelper.WriteLine("------------------------");
+        Console.WriteLine("------------------------");
         var statistics2 = await rateLimiter.GetStatisticsAsync();
 
-        _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics2.TotalSuccessfulLeases);
-        _outputHelper.WriteLine("TotalFailedLeases " + statistics2.TotalFailedLeases);
-        _outputHelper.WriteLine("CurrentAvailablePermits " + statistics2.CurrentAvailablePermits);
-        _outputHelper.WriteLine("CurrentQueuedCount " + statistics2.CurrentQueuedCount);
+        Console.WriteLine("TotalSuccessfulLeases " + statistics2.TotalSuccessfulLeases);
+        Console.WriteLine("TotalFailedLeases " + statistics2.TotalFailedLeases);
+        Console.WriteLine("CurrentAvailablePermits " + statistics2.CurrentAvailablePermits);
+        Console.WriteLine("CurrentQueuedCount " + statistics2.CurrentQueuedCount);
 
 
-        statistics1.TotalSuccessfulLeases.Should().Be(permit);
-        statistics1.CurrentQueuedCount.Should().Be(extra);
-        statistics1.CurrentAvailablePermits.Should().Be(0);
+        statistics1.TotalSuccessfulLeases.ShouldBe(permit);
+        statistics1.CurrentQueuedCount.ShouldBe(extra);
+        statistics1.CurrentAvailablePermits.ShouldBe(0);
 
-        statistics2.TotalSuccessfulLeases.Should().Be(permit + extra);
-        statistics2.CurrentQueuedCount.Should().Be(0);
-        statistics2.CurrentAvailablePermits.Should().Be(permit);
+        statistics2.TotalSuccessfulLeases.ShouldBe(permit + extra);
+        statistics2.CurrentQueuedCount.ShouldBe(0);
+        statistics2.CurrentAvailablePermits.ShouldBe(permit);
     }
 
-    [Fact]
+    [Test]
     public async Task GetFixedWindowRateLimiterTests()
     {
         var permit = 20;
@@ -125,23 +120,23 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
-        statistics.TotalSuccessfulLeases.Should().Be(success);
+        statistics.TotalSuccessfulLeases.ShouldBe(success);
 
-        _outputHelper.WriteLine("Samples " + summer.Samples.Count);
-        _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
-        _outputHelper.WriteLine("TotalFailedLeases " + statistics.TotalFailedLeases);
-        _outputHelper.WriteLine("CurrentAvailablePermits " + statistics.CurrentAvailablePermits);
-        _outputHelper.WriteLine("CurrentQueuedCount " + statistics.CurrentQueuedCount);
-        _outputHelper.WriteLine("Average " + summer.Average());
+        Console.WriteLine("Samples " + summer.Samples.Count);
+        Console.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
+        Console.WriteLine("TotalFailedLeases " + statistics.TotalFailedLeases);
+        Console.WriteLine("CurrentAvailablePermits " + statistics.CurrentAvailablePermits);
+        Console.WriteLine("CurrentQueuedCount " + statistics.CurrentQueuedCount);
+        Console.WriteLine("Average " + summer.Average());
 
 
         foreach (var item in summer.Samples)
-            _outputHelper.WriteLine(item.Key.ToString("O") + " " + item.Value);
+            Console.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().Should().Be(permit);
+        summer.Average().ShouldBe(permit);
     }
 
-    [Fact]
+    [Test]
     public async Task GetSlidingWindowRateLimiterTests()
     {
         var permit = 20;
@@ -182,23 +177,23 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
-        statistics.TotalSuccessfulLeases.Should().Be(success);
+        statistics.TotalSuccessfulLeases.ShouldBe(success);
 
-        _outputHelper.WriteLine("Samples " + summer.Samples.Count);
-        _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
-        _outputHelper.WriteLine("TotalFailedLeases " + statistics.TotalFailedLeases);
-        _outputHelper.WriteLine("CurrentAvailablePermits " + statistics.CurrentAvailablePermits);
-        _outputHelper.WriteLine("CurrentQueuedCount " + statistics.CurrentQueuedCount);
-        _outputHelper.WriteLine("Average " + summer.Average());
+        Console.WriteLine("Samples " + summer.Samples.Count);
+        Console.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
+        Console.WriteLine("TotalFailedLeases " + statistics.TotalFailedLeases);
+        Console.WriteLine("CurrentAvailablePermits " + statistics.CurrentAvailablePermits);
+        Console.WriteLine("CurrentQueuedCount " + statistics.CurrentQueuedCount);
+        Console.WriteLine("Average " + summer.Average());
 
 
         foreach (var item in summer.Samples)
-            _outputHelper.WriteLine(item.Key.ToString("O") + " " + item.Value);
+            Console.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().Should().Be(permit);
+        summer.Average().ShouldBe(permit);
     }
 
-    [Fact]
+    [Test]
     public async Task TokenBucketRateLimiterTests()
     {
         var permit = 10;
@@ -239,19 +234,19 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
-        statistics.TotalSuccessfulLeases.Should().Be(success);
+        statistics.TotalSuccessfulLeases.ShouldBe(success);
 
-        _outputHelper.WriteLine("Samples " + summer.Samples.Count);
-        _outputHelper.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
-        _outputHelper.WriteLine("TotalFailedLeases " + statistics.TotalFailedLeases);
-        _outputHelper.WriteLine("CurrentAvailablePermits " + statistics.CurrentAvailablePermits);
-        _outputHelper.WriteLine("CurrentQueuedCount " + statistics.CurrentQueuedCount);
-        _outputHelper.WriteLine("Average " + summer.Average());
+        Console.WriteLine("Samples " + summer.Samples.Count);
+        Console.WriteLine("TotalSuccessfulLeases " + statistics.TotalSuccessfulLeases);
+        Console.WriteLine("TotalFailedLeases " + statistics.TotalFailedLeases);
+        Console.WriteLine("CurrentAvailablePermits " + statistics.CurrentAvailablePermits);
+        Console.WriteLine("CurrentQueuedCount " + statistics.CurrentQueuedCount);
+        Console.WriteLine("Average " + summer.Average());
 
 
         foreach (var item in summer.Samples)
-            _outputHelper.WriteLine(item.Key.ToString("O") + " " + item.Value);
+            Console.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().Should().Be(permit);
+        summer.Average().ShouldBe(permit);
     }
 }

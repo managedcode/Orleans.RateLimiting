@@ -1,24 +1,19 @@
-using FluentAssertions;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests;
 
-[Collection(nameof(TestClusterApplication))]
+[ClassDataSource<TestClusterApplication>(Shared = SharedType.PerTestSession)]
 public class WebApiTests
 {
-    private readonly ITestOutputHelper _outputHelper;
     private readonly TestClusterApplication _testApp;
 
-    public WebApiTests(TestClusterApplication testApp, ITestOutputHelper outputHelper)
+    public WebApiTests(TestClusterApplication testApp)
     {
         _testApp = testApp;
-        _outputHelper = outputHelper;
     }
 
 
-    [Fact]
+    [Test]
     public async Task ControllerTest()
     {
         var client = _testApp.CreateClient();
@@ -46,7 +41,7 @@ public class WebApiTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 }

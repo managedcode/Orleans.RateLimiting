@@ -77,11 +77,11 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
 
     public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(int permitCount, TOption options)
     {
-        if (options is null)
-            return await AcquireAsync();
-
         if (_option is not null)
             options = _option;
+
+        if (options is null)
+            return await AcquireAsync();
 
         try
         {

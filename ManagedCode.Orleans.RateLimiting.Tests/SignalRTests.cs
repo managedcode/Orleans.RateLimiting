@@ -1,43 +1,38 @@
-using FluentAssertions;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.Orleans.RateLimiting.Tests.TestApp;
 using Microsoft.AspNetCore.SignalR.Client;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests;
 
-[Collection(nameof(TestClusterApplication))]
+[ClassDataSource<TestClusterApplication>(Shared = SharedType.PerTestSession)]
 public class SignalRTests
 {
-    private readonly ITestOutputHelper _outputHelper;
     private readonly TestClusterApplication _testApp;
 
-    public SignalRTests(TestClusterApplication testApp, ITestOutputHelper outputHelper)
+    public SignalRTests(TestClusterApplication testApp)
     {
         _testApp = testApp;
-        _outputHelper = outputHelper;
     }
 
 
-    [Fact]
+    [Test]
     public async Task Some()
     {
         try
         {
             var anonymousHub11 = _testApp.CreateSignalRClient(nameof(TestHub));
             await anonymousHub11.StartAsync();
-            anonymousHub11.State.Should().Be(HubConnectionState.Connected);
+            anonymousHub11.State.ShouldBe(HubConnectionState.Connected);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
             throw;
         }
-        
+
         var anonymousHub = _testApp.CreateSignalRClient(nameof(TestHub));
         await anonymousHub.StartAsync();
-        anonymousHub.State.Should().Be(HubConnectionState.Connected);
+        anonymousHub.State.ShouldBe(HubConnectionState.Connected);
 
     }
 }

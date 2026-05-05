@@ -1,24 +1,19 @@
-using FluentAssertions;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests;
 
-[Collection(nameof(TestClusterApplication))]
+[ClassDataSource<TestClusterApplication>(Shared = SharedType.PerTestSession)]
 public class FixedWindowRateLimiterGrainTests
 {
-    private readonly ITestOutputHelper _outputHelper;
     private readonly TestClusterApplication _testApp;
 
-    public FixedWindowRateLimiterGrainTests(TestClusterApplication testApp, ITestOutputHelper outputHelper)
+    public FixedWindowRateLimiterGrainTests(TestClusterApplication testApp)
     {
         _testApp = testApp;
-        _outputHelper = outputHelper;
     }
 
-    [Fact]
+    [Test]
     public async Task GrainIdTests()
     {
         var count = 100;
@@ -40,12 +35,12 @@ public class FixedWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().Be(count);
-        errors.Should().Be(0);
+        (success + errors).ShouldBe(count);
+        success.ShouldBe(count);
+        errors.ShouldBe(0);
     }
 
-    [Fact]
+    [Test]
     public async Task KeyTests()
     {
         var count = 100;
@@ -67,11 +62,11 @@ public class FixedWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 
-    [Fact]
+    [Test]
     public async Task TypeTests()
     {
         var count = 100;
@@ -93,11 +88,11 @@ public class FixedWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 
-    [Fact]
+    [Test]
     public async Task RateLimiterConfigTests()
     {
         var count = 100;
@@ -119,7 +114,7 @@ public class FixedWindowRateLimiterGrainTests
 
         await Task.WhenAll(tasks);
 
-        (success + errors).Should().Be(count);
-        success.Should().BeLessThan(errors);
+        (success + errors).ShouldBe(count);
+        success.ShouldBeLessThan(errors);
     }
 }

@@ -1,37 +1,51 @@
-name: nuget
+name: NuGet
 
 on:
   push:
     branches: [ main ]
-  
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+permissions:
+  contents: read
 
 jobs:
   nuget-pack:
+    name: Build, Test, Pack, and Publish
 
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore local tools
+        run: dotnet tool restore
 
       - name: Restore dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --configuration Release
-      - name: Test
-        run: dotnet test --configuration Release
-      - name: Pack
-        run: dotnet pack -p:IncludeSymbols=false -p:SymbolPackageFormat=snupkg --configuration Release
+        run: dotnet restore ManagedCode.Orleans.RateLimiting.sln
 
-      - name: publish nuget packages
+      - name: Build
+        run: dotnet build ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --solution ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build --verbosity normal
+
+      - name: Pack
+        run: dotnet pack ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build -p:IncludeSymbols=false -p:SymbolPackageFormat=snupkg --output ./artifacts
+
+      - name: Publish NuGet packages
         run: |
+          set -euo pipefail
           shopt -s globstar
-          for file in **/*.nupkg
+          for file in ./artifacts/*.nupkg
           do
             dotnet nuget push "$file" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
           done

@@ -10,7 +10,7 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 
 public class OrleansUserRateLimitingMiddleware : OrleansBaseRateLimitingMiddleware
 {
-    public OrleansUserRateLimitingMiddleware(ILogger<OrleansUserRateLimitingMiddleware> logger, IClusterClient client, IServiceProvider services, RequestDelegate next) 
+    public OrleansUserRateLimitingMiddleware(ILogger<OrleansUserRateLimitingMiddleware> logger, IClusterClient client, IServiceProvider services, RequestDelegate next)
         : base(logger, next, client, services)
     {
     }

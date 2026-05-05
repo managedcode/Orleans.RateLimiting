@@ -1,60 +1,56 @@
-# Orleans.RateLimiting
+# ManagedCode.Orleans.RateLimiting
 
-Orleans.RateLimiting is a library for Microsoft Orleans that provides a set of rate limiting algorithms for controlling
-the flow of requests in your distributed applications.
-It is designed to be easy to use and to integrate with your Orleans-based applications seamlessly.
-With Orleans.RateLimiting, you can ensure your applications handle a safe number of requests without the risk of
-overloading your system resources.
-RateLimiting
-on [learn.microsoft.com](https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0)
-and [devblogs.microsoft.com](https://devblogs.microsoft.com/dotnet/announcing-rate-limiting-for-dotnet/)
+Distributed rate limiting for Microsoft Orleans applications.
+
+The library wraps `System.Threading.RateLimiting` behind Orleans grains so the same limiter can be shared across silos, HTTP middleware, SignalR hubs, and grain calls.
+
+## Packages
+
+- `ManagedCode.Orleans.RateLimiting.Core` — shared grain contracts, attributes, options, leases, and Orleans serializers.
+- `ManagedCode.Orleans.RateLimiting.Server` — Orleans grain implementations, incoming grain call filters, and silo registration helpers.
+- `ManagedCode.Orleans.RateLimiting.Client` — Orleans client, ASP.NET Core middleware, SignalR, and HTTP attribute integration.
 
 ## Features
 
-- Supports 4 types of rate limiting algorithms:
-    - Fixed Window Rate Limiter
-    - Concurrency Limiter
-    - Sliding Window Rate Limiter
-    - Token Bucket Rate Limiter
-- Easy integration with Microsoft Orleans
-- Configurable rate limiting options
-- Comprehensive documentation and examples
+- Fixed window, sliding window, token bucket, and concurrency limiters.
+- Distributed limiter state through Orleans grains.
+- Grain method attributes for grain-call rate limiting.
+- ASP.NET Core middleware and controller attributes for IP, anonymous user, authorized user, and role-aware limiting.
+- SignalR integration surface.
+- Central package management and .NET 10 build/test/coverage workflow.
+
+## Requirements
+
+- .NET SDK 10
+- Microsoft Orleans 10
 
 ## Installation
 
-You can install Orleans.RateLimiting via NuGet Package Manager:
+Install the server package in the silo host:
 
 ```sh
-// for Client
-Install-Package ManagedCode.Orleans.RateLimiting.Client
+dotnet add package ManagedCode.Orleans.RateLimiting.Server
 ```
+
+Install the client package in applications that call limiters or use ASP.NET Core middleware:
 
 ```sh
-// for Server
-Install-Package ManagedCode.Orleans.RateLimiting.Server
+dotnet add package ManagedCode.Orleans.RateLimiting.Client
 ```
 
-then add the following to your `SiloHostBuilder` or `ClientBuilder`:
+## Silo Setup
+
+Register the Orleans rate-limiting services and any limiter defaults that should be enforced by grain call filters.
 
 ```csharp
-// for Client
-clientBuilder.AddOrleansRateLimiting();
-
-// for Server
 siloBuilder.AddOrleansRateLimiting();
-```
 
-Also if you would like to use incoming filter and **Attributes**, you have to add default options for Limiter:
-
-```csharp
-//Add default options and IncomingFilter
 siloBuilder.AddOrleansConcurrencyLimiter(options =>
 {
     options.PermitLimit = 10;
     options.QueueLimit = 15;
 });
 
-//Add default options and IncomingFilter
 siloBuilder.AddOrleansFixedWindowRateLimiter(options =>
 {
     options.PermitLimit = 10;
@@ -62,17 +58,14 @@ siloBuilder.AddOrleansFixedWindowRateLimiter(options =>
     options.Window = TimeSpan.FromSeconds(1);
 });
 
-//Add default options and IncomingFilter
 siloBuilder.AddOrleansSlidingWindowRateLimiter(options =>
 {
     options.PermitLimit = 10;
     options.QueueLimit = 15;
     options.Window = TimeSpan.FromSeconds(1);
     options.SegmentsPerWindow = 2;
-
 });
 
-//Add default options and IncomingFilter
 siloBuilder.AddOrleansTokenBucketRateLimiter(options =>
 {
     options.TokenLimit = 10;
@@ -82,96 +75,105 @@ siloBuilder.AddOrleansTokenBucketRateLimiter(options =>
 });
 ```
 
-## Usage
+## Direct Limiter Usage
 
-To use Orleans.RateLimiting in your application, first configure the desired rate limiter:
+Limiters are available as extensions on `IGrainFactory` and `IClusterClient`.
 
 ```csharp
-var rateLimiter = _client.GetConcurrencyLimiter("test");
-await rateLimiter.Configure(new ConcurrencyLimiterOptions
+var limiter = clusterClient.GetConcurrencyLimiter("tenant:user");
+
+await limiter.Configure(new ConcurrencyLimiterOptions
 {
-    PermitLimit = permit,
-    QueueLimit = permit * 2,
+    PermitLimit = 20,
+    QueueLimit = 40,
     QueueProcessingOrder = QueueProcessingOrder.OldestFirst
 });
-```
 
-Then, acquire a lease before making a request:
-
-```csharp
-await using var lease = await rateLimiter.AcquireAsync();
-if (lease.IsAcquired)
+await using var lease = await limiter.AcquireAsync();
+if (!lease.IsAcquired)
 {
-    // do something
+    Console.WriteLine(lease.Reason);
+    Console.WriteLine(lease.RetryAfter);
+    return;
 }
-else
+
+// Continue protected work.
+```
+
+You can also create option-backed holders when configuration should be checked before acquisition:
+
+```csharp
+var limiter = clusterClient.GetFixedWindowRateLimiter(
+    "tenant:api",
+    new FixedWindowRateLimiterOptions
+    {
+        PermitLimit = 100,
+        QueueLimit = 0,
+        Window = TimeSpan.FromMinutes(1)
+    });
+
+await using var lease = await limiter.AcquireAndConfigureAsync();
+lease.ThrowIfNotAcquired();
+```
+
+## Request Orchestration
+
+For cluster-level request orchestration, Core exposes policy and resolver interfaces that can map one request into multiple limiter partitions. Typical partitions are user, group, tenant, role, IP address, endpoint, grain, or a custom key.
+
+```csharp
+public sealed class CheckoutRateLimitPolicy : IRateLimitRequestPolicy
 {
-    Console.WriteLine(lease.Reason); // reason why the lease was not acquired
-    Console.WriteLine(lease.RetryAfter); //TimeSpan to wait before retrying
+    public ValueTask<IReadOnlyList<RateLimitRequestPartition>> GetPartitionsAsync(
+        RateLimitRequestContext context,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<RateLimitRequestPartition> partitions =
+        [
+            new(RateLimitPartitionKind.User, context.UserId!, "user-checkout"),
+            new(RateLimitPartitionKind.Group, context.GroupId!, "group-checkout")
+        ];
+
+        return ValueTask.FromResult(partitions);
+    }
 }
 ```
 
-The following rate limiters are provided as extensions for `IGrainFactory` and `IClusterClient`
+Implement `IRateLimitRequestOrchestrator` when an application needs to turn those partitions into a `GroupLimiterHolder` and acquire all relevant limiters before executing a request.
 
-- Fixed Window Rate Limiter
+## Grain Attributes
 
-```csharp
-var fixedWindowRateLimiter = _factory.GetFixedWindowRateLimiter("key");
-```
-
-- Concurrency Limiter
-
-```csharp
-var concurrencyLimiter = _factory.GetConcurrencyLimiter("key");
-```
-
-- Sliding Window Rate Limiter
-
-```csharp
-var slidingWindowRateLimiter = _factory.GetSlidingWindowRateLimiter("key");
-```
-
-- Token Bucket Rate Limiter
-
-```csharp
-var tokenBucketRateLimiter = _factory.GetTokenBucketRateLimiter("key");
-```
-
-### Attrubutes for Grains
-
-You can use attributes to decorate your grain methods and apply rate limiting to them.
-Make sure you check configuration section for default options.
+Decorate grain methods to enforce rate limiting through incoming grain call filters.
 
 ```csharp
 public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimiterGrain
 {
-    [FixedWindowRateLimiter] //GrainId as key, default options
-    public async Task<string> Do()
+    [FixedWindowRateLimiter]
+    public Task<string> ByGrainId()
     {
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        return "Do";
+        return Task.FromResult("ok");
     }
 
-    [FixedWindowRateLimiter(KeyType.Key, "go")] //String as Key, default options
-    public async Task<string> Go()
+    [FixedWindowRateLimiter(KeyType.Key, "shared-key")]
+    public Task<string> BySharedKey()
     {
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        return "Go";
+        return Task.FromResult("ok");
     }
 
-    [FixedWindowRateLimiter(KeyType.GrainType, permitLimit:2, queueLimit:1)] //GrainType as Key, custom options, some of them are default (check Attribute)
-    public async Task<string> Take()
+    [FixedWindowRateLimiter(KeyType.GrainType, permitLimit: 2, queueLimit: 1)]
+    public Task<string> ByGrainType()
     {
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        return "Take";
+        return Task.FromResult("ok");
     }
 }
 ```
 
-### Attrubutes for WebAPI
+## ASP.NET Core Usage
 
-You can define OrleansRateLimiterOptions with specific name.
-``` cs
+Register named limiter options and place middleware in the ASP.NET Core pipeline.
+
+```csharp
+builder.Services.AddOrleansRateLimiting();
+
 builder.Services.AddOrleansRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
 {
     QueueLimit = 5,
@@ -192,38 +194,53 @@ builder.Services.AddOrleansRateLimiterOptions("Authorized", new FixedWindowRateL
     PermitLimit = 2,
     Window = TimeSpan.FromSeconds(1)
 });
-        
 ```
 
-then add middelware
-``` cs
-app.UseOrleansIpRateLimiting(); // as earlier as possible
-.....
+```csharp
 app.UseRouting();
-app.UseCors();
-app.MapControllers();
-
-//Authentication should always be placed before Authorization.
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseOrleansUserRateLimiting(); // after Authorization and Authorization
-.....
+
+app.UseOrleansIpRateLimiting();
+app.UseOrleansUserRateLimiting();
+
+app.MapControllers();
 ```
 
-Finally you can add attributes to controller or single methods:
-``` cs
+Apply HTTP limiter attributes to controllers or actions.
+
+```csharp
 [AuthorizedIpRateLimiter("Authorized")]
-[AnonymousIpRateLimiter("Authorized")]
+[AnonymousIpRateLimiter("Anonymous")]
 [InRoleIpRateLimiter("Authorized", "Admin")]
-[HttpGet("get_some")]
-public async Task<ActionResult<string>> GetSome()
+[HttpGet("limited")]
+public Task<ActionResult<string>> GetLimited()
 {
-    await Task.Delay(300);
-    return "OK";
+    return Task.FromResult<ActionResult<string>>("OK");
 }
 ```
+
+## Development
+
+This repository targets .NET 10 with central package management.
+
+```sh
+dotnet restore ManagedCode.Orleans.RateLimiting.sln
+dotnet build ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-restore
+dotnet test --solution ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build --verbosity normal
+dotnet format ManagedCode.Orleans.RateLimiting.sln --verify-no-changes
+```
+
+Coverage uses local tools from `.config/dotnet-tools.json`.
+
+```sh
+dotnet tool restore
+dotnet tool run coverlet ManagedCode.Orleans.RateLimiting.Tests/bin/Release/net10.0/ManagedCode.Orleans.RateLimiting.Tests.dll --target "dotnet" --targetargs "test --project ManagedCode.Orleans.RateLimiting.Tests/ManagedCode.Orleans.RateLimiting.Tests.csproj --configuration Release --no-build --no-restore" --format cobertura --output artifacts/coverage/coverage.cobertura.xml --exclude "[ManagedCode.Orleans.RateLimiting.Tests]*" --threshold 85 --threshold-type line --threshold-stat total
+dotnet tool run reportgenerator -reports:"artifacts/coverage/coverage.cobertura.xml" -targetdir:"artifacts/coverage-report" -reporttypes:"HtmlSummary;MarkdownSummaryGithub"
+```
+
+Current local coverage after the .NET 10 migration is above the 85% line-coverage target.
+
 ## Contributing
 
-We welcome contributions to Orleans.RateLimiting!
-Feel free to submit issues, feature requests, and pull requests on
-the [GitHub repository](https://github.com/yourusername/Orleans.RateLimiter).
+Issues and pull requests are welcome in the [GitHub repository](https://github.com/managedcode/Orleans.RateLimiting).

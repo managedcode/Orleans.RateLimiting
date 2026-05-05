@@ -1,43 +1,71 @@
-name: .NET
+name: CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
-  
-  
-  # Allows you to run this workflow manually from the Actions tab
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
-jobs:
-  
-  build-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 7.0.x
-        
-        # run build and test           
-      - name: Restore dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --no-restore
-      - name: Test
-        run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov /p:CoverletOutput=ManagedCode.Orleans.RateLimiting.Tests/lcov.info
+env:
+  DOTNET_VERSION: '10.0.x'
 
-      #- name: coverlet
-      #  uses: b3b00/coverlet-action@1.1.9
-      #  with:
-      #    testProject: 'ManagedCode.Database.Tests/ManagedCode.Database.Tests.csproj'
-      #    output: 'lcov.info'
-      #    outputFormat: 'lcov'
-      #    excludes: '[program]*,[test]test.*'
-      #- name: coveralls
-      #  uses: coverallsapp/github-action@master
-      #  with:
-      #    github-token: ${{secrets.GITHUB_TOKEN }}
-      #    path-to-lcov: ManagedCode.Storage.Tests/lcov.info
+permissions:
+  contents: read
+
+jobs:
+
+  build-and-test:
+    name: Build, Test, and Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore ManagedCode.Orleans.RateLimiting.sln
+
+      - name: Build
+        run: dotnet build ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-restore
+
+      - name: Analyze
+        run: dotnet build ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-restore -p:RunAnalyzers=true
+
+      - name: Verify formatting
+        run: dotnet format ManagedCode.Orleans.RateLimiting.sln --verify-no-changes
+
+      - name: Test
+        run: dotnet test --solution ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build --verbosity normal --report-trx --results-directory ./artifacts/test-results
+
+      - name: Collect coverage
+        run: dotnet tool run coverlet ManagedCode.Orleans.RateLimiting.Tests/bin/Release/net10.0/ManagedCode.Orleans.RateLimiting.Tests.dll --target "dotnet" --targetargs "test --project ManagedCode.Orleans.RateLimiting.Tests/ManagedCode.Orleans.RateLimiting.Tests.csproj --configuration Release --no-build --no-restore" --format cobertura --output artifacts/coverage/coverage.cobertura.xml --exclude "[ManagedCode.Orleans.RateLimiting.Tests]*" --threshold 85 --threshold-type line --threshold-stat total
+
+      - name: Render coverage report
+        run: dotnet tool run reportgenerator -reports:"artifacts/coverage/coverage.cobertura.xml" -targetdir:"artifacts/coverage-report" -reporttypes:"HtmlSummary;MarkdownSummaryGithub"
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./artifacts/test-results/**
+          retention-days: 5
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            ./artifacts/coverage/**
+            ./artifacts/coverage-report/**
+          retention-days: 5

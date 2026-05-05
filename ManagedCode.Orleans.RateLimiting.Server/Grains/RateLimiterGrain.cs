@@ -55,7 +55,7 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
     {
         Options = options;
         RateLimiter = CreateDefaultRateLimiter();
-        _logger.LogInformation($"Configured {nameof(SlidingWindowRateLimiter)} with id:{this.GetPrimaryKeyString()}");
+        _logger.LogInformation("Configured {LimiterType} with id:{GrainId}", typeof(TLimiter).Name, this.GetPrimaryKeyString());
         return ValueTask.CompletedTask;
     }
 

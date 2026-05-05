@@ -1,37 +1,53 @@
 <Project>
-    <!--NuGet-->
-    <PropertyGroup>
-        <Authors>ManagedCode</Authors>
-        <Copyright>Copyright © 2021-$([System.DateTime]::Now.ToString(`yyyy`)) ManagedCode SAS</Copyright>
-        <EmbedUntrackedSources>true</EmbedUntrackedSources>
-        <PublishRepositoryUrl>true</PublishRepositoryUrl>
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <RepositoryType>Github</RepositoryType>
-        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-        <PackageIcon>logo.png</PackageIcon>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <EnablePackageValidation>true</EnablePackageValidation>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
+    <DebugType>embedded</DebugType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591;CA1707;CA1848;CA1859;CA1873</NoWarn>
+    <Version>10.0.0</Version>
+    <PackageVersion>$(Version)</PackageVersion>
+  </PropertyGroup>
 
-        <RepositoryUrl>https://github.com/managedcode/Orleans.RateLimiting</RepositoryUrl>
-        <PackageProjectUrl>https://github.com/managedcode/Orleans.RateLimiting</PackageProjectUrl>
-        <Product>Managed Code - Orleans RateLimiting</Product>
-        <Version>0.0.8</Version>
-        <PackageVersion>0.0.8</PackageVersion>
+  <PropertyGroup>
+    <Authors>ManagedCode</Authors>
+    <Company>ManagedCode</Company>
+    <Copyright>Copyright © 2021-$([System.DateTime]::Now.ToString(`yyyy`)) ManagedCode SAS</Copyright>
+    <Product>ManagedCode.Orleans.RateLimiting</Product>
+    <RepositoryType>GitHub</RepositoryType>
+    <RepositoryUrl>https://github.com/managedcode/Orleans.RateLimiting</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/managedcode/Orleans.RateLimiting</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>logo.png</PackageIcon>
+    <Description Condition="'$(Description)' == ''">Distributed rate limiting primitives for Microsoft Orleans.</Description>
+    <PackageTags>orleans;rate-limiting;distributed-rate-limiter;aspnetcore;dotnet</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+  </PropertyGroup>
 
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    </PropertyGroup>
-    <ItemGroup>
-        <None Include="$(SolutionDir)\logo.png" Pack="true" Visible="false" PackagePath="\"/>
-        <None Include="$(SolutionDir)\README.md" Pack="true" Visible="false" PackagePath="\"/>
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true' or '$(CI)' == 'true' or '$(TF_BUILD)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Link="README.md" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Link="LICENSE" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)logo.png" Pack="true" PackagePath="\" Link="logo.png" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNet.ReproducibleBuilds" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

@@ -1,17 +1,18 @@
 ﻿using ManagedCode.Orleans.RateLimiting.Tests.TestApp;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Orleans.TestingHost;
-using Xunit;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 
-[CollectionDefinition(nameof(TestClusterApplication))]
-public class TestClusterApplication : WebApplicationFactory<HttpHostProgram>, ICollectionFixture<TestClusterApplication>
+public class TestClusterApplication : IDisposable, IAsyncDisposable
 {
+    private readonly IHost _host;
+    private bool _disposed;
+
     public TestClusterApplication()
     {
         var builder = new TestClusterBuilder();
@@ -19,20 +20,27 @@ public class TestClusterApplication : WebApplicationFactory<HttpHostProgram>, IC
         builder.AddClientBuilderConfigurator<TestClientConfigurations>();
         Cluster = builder.Build();
         Cluster.Deploy();
+
+        _host = new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
+            {
+                webBuilder.UseEnvironment("Development");
+                webBuilder.UseTestServer();
+                webBuilder.ConfigureServices(services =>
+                {
+                    services.AddSingleton(Cluster.Client);
+                    HttpHostProgram.ConfigureServices(services);
+                });
+                webBuilder.Configure(HttpHostProgram.Configure);
+            })
+            .Start();
     }
 
     public TestCluster Cluster { get; }
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Development");
-    }
+    public TestServer Server => _host.GetTestServer();
 
-    protected override IHost CreateHost(IHostBuilder builder)
-    {
-        builder.ConfigureServices(s => { s.AddSingleton(Cluster.Client); });
-        return base.CreateHost(builder);
-    }
+    public HttpClient CreateClient() => _host.GetTestClient();
 
     public HubConnection CreateSignalRClient(string hubUrl, Action<HubConnectionBuilder>? configure = null)
     {
@@ -41,15 +49,26 @@ public class TestClusterApplication : WebApplicationFactory<HttpHostProgram>, IC
         return builder.WithUrl(new Uri(Server.BaseAddress, hubUrl), o => o.HttpMessageHandlerFactory = _ => Server.CreateHandler()).Build();
     }
 
-    protected override void Dispose(bool disposing)
+    public void Dispose()
     {
-        base.Dispose(disposing);
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        _host.Dispose();
         Cluster.Dispose();
+        GC.SuppressFinalize(this);
     }
 
-    public override async ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        await base.DisposeAsync();
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        await _host.StopAsync();
+        _host.Dispose();
         await Cluster.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 }

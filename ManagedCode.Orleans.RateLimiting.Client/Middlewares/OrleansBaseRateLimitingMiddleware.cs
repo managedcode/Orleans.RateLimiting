@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
-using ManagedCode.Communication;
 using ManagedCode.Orleans.RateLimiting.Client.Attributes;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
@@ -49,7 +48,13 @@ public abstract class OrleansBaseRateLimitingMiddleware
         {
             httpContext.Response.Clear();
             httpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
-            await httpContext.Response.WriteAsJsonAsync(Result.Fail(HttpStatusCode.TooManyRequests, error.ToException()));
+            await httpContext.Response.WriteAsJsonAsync(new
+            {
+                StatusCode = (int)HttpStatusCode.TooManyRequests,
+                Error = "Too many requests",
+                error.Reason,
+                RetryAfter = error.RetryAfter.ToString()
+            });
         }
     }
 
@@ -87,7 +92,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
         var limiter = _client.GetRateLimiterByConfig(key, configurationName, _services.GetService<IEnumerable<RateLimiterConfig>>());
 
         if (limiter is null)
-            _logger.LogError($"Configuration {configurationName} not found for RateLimiter");
+            _logger.LogError("Configuration {ConfigurationName} not found for RateLimiter", configurationName);
 
         return limiter;
     }

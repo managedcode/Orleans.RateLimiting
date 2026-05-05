@@ -2,56 +2,53 @@ using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Client.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests.TestApp;
 
-public class HttpHostProgram
+public static class HttpHostProgram
 {
-    public static void Main(string[] args)
+    public static void ConfigureServices(IServiceCollection services)
     {
-        var builder = WebApplication.CreateBuilder(args);
-
-        builder.Services.AddControllers();
-        builder.Services.AddSignalR();
-        builder.Services.AddLogging(log=>log.AddSimpleConsole());
-
-        builder.Services.AddOrleansRateLimiting();
-        
-        builder.Services.AddOrleansRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
+        services.AddControllers();
+        services.AddSignalR();
+        services.AddLogging(log => log.AddSimpleConsole());
+        services.AddOrleansRateLimiting();
+        services.AddOrleansRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
         {
             QueueLimit = 5,
             PermitLimit = 5,
             Window = TimeSpan.FromSeconds(1)
         });
 
-        builder.Services.AddOrleansRateLimiterOptions("Anonymous", new FixedWindowRateLimiterOptions
+        services.AddOrleansRateLimiterOptions("Anonymous", new FixedWindowRateLimiterOptions
         {
             QueueLimit = 1,
             PermitLimit = 1,
             Window = TimeSpan.FromSeconds(1)
         });
 
-        builder.Services.AddOrleansRateLimiterOptions("Authorized", new FixedWindowRateLimiterOptions
+        services.AddOrleansRateLimiterOptions("Authorized", new FixedWindowRateLimiterOptions
         {
             QueueLimit = 2,
             PermitLimit = 2,
             Window = TimeSpan.FromSeconds(1)
         });
+    }
 
-
-        var app = builder.Build();
-
-
-        app.MapControllers();
-        app.MapHub<TestHub>(nameof(TestHub));
-
+    public static void Configure(IApplicationBuilder app)
+    {
+        app.UseRouting();
         app.UseOrleansIpRateLimiting();
         app.UseOrleansUserRateLimiting();
+        app.UseEndpoints(ConfigureEndpoints);
+    }
 
-        //app.UseRateLimiter();
-
-        app.Run();
+    private static void ConfigureEndpoints(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapControllers();
+        endpoints.MapHub<TestHub>(nameof(TestHub));
     }
 }

@@ -12,17 +12,17 @@ public static class GrainFactoryExtensions
 {
     public static ILimiterHolder GetRateLimiter<T>(this IGrainFactory factory, string key) where T : IRateLimiterGrain
     {
-        ILimiterHolder limiter = typeof(T) switch
+        ILimiterHolder? limiter = typeof(T) switch
         {
-            IFixedWindowRateLimiterGrain => factory.GetFixedWindowRateLimiter(key),
-            IConcurrencyLimiterGrain => factory.GetConcurrencyLimiter(key),
-            ISlidingWindowRateLimiterGrain => factory.GetSlidingWindowRateLimiter(key),
-            ITokenBucketRateLimiterGrain => factory.GetTokenBucketRateLimiter(key),
+            var type when type == typeof(IFixedWindowRateLimiterGrain) => factory.GetFixedWindowRateLimiter(key),
+            var type when type == typeof(IConcurrencyLimiterGrain) => factory.GetConcurrencyLimiter(key),
+            var type when type == typeof(ISlidingWindowRateLimiterGrain) => factory.GetSlidingWindowRateLimiter(key),
+            var type when type == typeof(ITokenBucketRateLimiterGrain) => factory.GetTokenBucketRateLimiter(key),
 
             _ => null //throw new ArgumentException("Unknown rate limiter grain type")
         };
 
-        return limiter;
+        return limiter!;
     }
 
     public static ILimiterHolder? GetRateLimiterByConfig(this IGrainFactory factory, string key, string configurationName, IEnumerable<RateLimiterConfig> configs)
