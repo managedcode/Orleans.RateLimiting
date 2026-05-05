@@ -48,7 +48,7 @@ Use the installed Managed Code Skills catalog entries that match this repo:
 - `microsoft-extensions` — dependency injection, options, hosting, logging, and configuration.
 - `orleans` — grains, grain interfaces, silo/client setup, filters, and serialization.
 - `quality-ci` — GitHub Actions quality gates, build/test/analyze/coverage workflow work.
-- `format`, `csharpier`, `roslynator`, `analyzer-config`, `code-analysis` — formatting and analyzer alignment.
+- `format`, `roslynator`, `analyzer-config`, `code-analysis` — formatting and analyzer alignment.
 - `complexity`, `crap-score` — maintainability and complexity review.
 - `architecture` — architecture map, boundaries, and module-level reasoning.
 
