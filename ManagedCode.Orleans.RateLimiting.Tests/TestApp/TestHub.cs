@@ -4,8 +4,10 @@ namespace ManagedCode.Orleans.RateLimiting.Tests.TestApp;
 
 public class TestHub : Hub
 {
-    public Task<int> DoTest()
+    public async Task<int> DoTest()
     {
-        return Task.FromResult(new Random().Next());
+        _ = Context.ConnectionId;
+        await Task.Delay(250);
+        return Random.Shared.Next();
     }
 }

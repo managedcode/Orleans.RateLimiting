@@ -15,8 +15,9 @@ The library wraps `System.Threading.RateLimiting` behind Orleans grains so the s
 - Fixed window, sliding window, token bucket, and concurrency limiters.
 - Distributed limiter state through Orleans grains.
 - Grain method attributes for grain-call rate limiting.
-- ASP.NET Core middleware and controller attributes for IP, anonymous user, authorized user, and role-aware limiting.
-- SignalR integration surface.
+- Request orchestration for per-user, per-group, per-tenant, per-role, per-IP, per-endpoint, per-grain, and custom partitions.
+- ASP.NET Core request middleware plus controller attributes for IP, anonymous user, authorized user, and role-aware limiting.
+- SignalR hub invocation filtering through the same request orchestration pipeline.
 - Central package management and .NET 10 build/test/coverage workflow.
 
 ## Requirements
@@ -118,27 +119,42 @@ lease.ThrowIfNotAcquired();
 
 ## Request Orchestration
 
-For cluster-level request orchestration, Core exposes policy and resolver interfaces that can map one request into multiple limiter partitions. Typical partitions are user, group, tenant, role, IP address, endpoint, grain, or a custom key.
+Request orchestration maps one logical request into one or more distributed limiter partitions. This is the preferred API for new applications because it lets a cluster enforce combined limits such as per user, per group, per tenant, per endpoint, and custom metadata keys.
 
 ```csharp
-public sealed class CheckoutRateLimitPolicy : IRateLimitRequestPolicy
+builder.Services.AddOrleansRateLimiting(options =>
 {
-    public ValueTask<IReadOnlyList<RateLimitRequestPartition>> GetPartitionsAsync(
-        RateLimitRequestContext context,
-        CancellationToken cancellationToken = default)
-    {
-        IReadOnlyList<RateLimitRequestPartition> partitions =
-        [
-            new(RateLimitPartitionKind.User, context.UserId!, "user-checkout"),
-            new(RateLimitPartitionKind.Group, context.GroupId!, "group-checkout")
-        ];
+    options.AddUser("user-checkout", required: true);
+    options.AddGroup("group-checkout");
+    options.AddTenant("tenant-checkout");
+    options.AddCustom("route-checkout", metadataKey: "route");
+});
+```
 
-        return ValueTask.FromResult(partitions);
+The default `IRateLimitRequestOrchestrator` uses registered `IRateLimitRequestPolicy` instances, `IRateLimitRequestKeyResolver`, named `RateLimiterConfig` values, and Orleans grains to build a `GroupLimiterHolder`.
+
+```csharp
+var request = new RateLimitRequestContext
+{
+    OperationName = "checkout",
+    UserId = "user-123",
+    GroupId = "group-a",
+    TenantId = "tenant-main",
+    Metadata = new Dictionary<string, string>
+    {
+        ["route"] = "/checkout"
     }
+};
+
+await using var group = await orchestrator.CreateLimiterGroupAsync(request);
+var rejectedLease = await group.AcquireAsync();
+if (rejectedLease is not null)
+{
+    throw rejectedLease.ToException();
 }
 ```
 
-Implement `IRateLimitRequestOrchestrator` when an application needs to turn those partitions into a `GroupLimiterHolder` and acquire all relevant limiters before executing a request.
+Implement custom `IRateLimitRequestPolicy` or `IRateLimitRequestKeyResolver` when the default context fields are not enough.
 
 ## Grain Attributes
 
@@ -169,11 +185,9 @@ public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimite
 
 ## ASP.NET Core Usage
 
-Register named limiter options and place middleware in the ASP.NET Core pipeline.
+Register named limiter options and configure request orchestration rules.
 
 ```csharp
-builder.Services.AddOrleansRateLimiting();
-
 builder.Services.AddOrleansRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
 {
     QueueLimit = 5,
@@ -194,6 +208,12 @@ builder.Services.AddOrleansRateLimiterOptions("Authorized", new FixedWindowRateL
     PermitLimit = 2,
     Window = TimeSpan.FromSeconds(1)
 });
+
+builder.Services.AddOrleansRateLimiting(options =>
+{
+    options.AddIpAddress("ip");
+    options.AddUser("Authorized");
+});
 ```
 
 ```csharp
@@ -201,6 +221,9 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseOrleansRequestRateLimiting();
+
+// Attribute-based middleware is still available for existing controllers.
 app.UseOrleansIpRateLimiting();
 app.UseOrleansUserRateLimiting();
 
@@ -219,6 +242,25 @@ public Task<ActionResult<string>> GetLimited()
     return Task.FromResult<ActionResult<string>>("OK");
 }
 ```
+
+## SignalR Usage
+
+SignalR hub methods can be rate limited through the same request orchestration infrastructure.
+
+```csharp
+builder.Services.AddOrleansRateLimiterOptions("SignalR", new FixedWindowRateLimiterOptions
+{
+    PermitLimit = 10,
+    QueueLimit = 0,
+    Window = TimeSpan.FromSeconds(1)
+});
+
+builder.Services
+    .AddSignalR()
+    .AddOrleansRateLimiting("SignalR", RateLimitPartitionKind.User);
+```
+
+The built-in hub filter builds a `RateLimitRequestContext` from hub method name, user identifier, claims, IP address, and hub resource name.
 
 ## Development
 
@@ -239,7 +281,7 @@ dotnet tool run coverlet ManagedCode.Orleans.RateLimiting.Tests/bin/Release/net1
 dotnet tool run reportgenerator -reports:"artifacts/coverage/coverage.cobertura.xml" -targetdir:"artifacts/coverage-report" -reporttypes:"HtmlSummary;MarkdownSummaryGithub"
 ```
 
-Current local coverage after the .NET 10 migration is above the 85% line-coverage target.
+Current local coverage after the .NET 10 migration and request-orchestration refactor is above the 85% line-coverage target.
 
 ## Contributing
 

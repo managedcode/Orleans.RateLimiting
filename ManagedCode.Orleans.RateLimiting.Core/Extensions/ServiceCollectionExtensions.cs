@@ -1,12 +1,32 @@
 using System;
 using System.Threading.RateLimiting;
+using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
+using ManagedCode.Orleans.RateLimiting.Core.Options;
+using ManagedCode.Orleans.RateLimiting.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection AddOrleansRateLimitingCore(this IServiceCollection collection)
+    {
+        collection.AddOptions<RateLimitRequestOrchestrationOptions>();
+        collection.TryAddSingleton<IRateLimitRequestKeyResolver, DefaultRateLimitRequestKeyResolver>();
+        collection.TryAddEnumerable(ServiceDescriptor.Singleton<IRateLimitRequestPolicy, OptionsRateLimitRequestPolicy>());
+        collection.TryAddSingleton<IRateLimitRequestOrchestrator, DefaultRateLimitRequestOrchestrator>();
+        return collection;
+    }
+
+    public static IServiceCollection AddOrleansRequestRateLimiting(this IServiceCollection collection, Action<RateLimitRequestOrchestrationOptions> configure)
+    {
+        collection.AddOrleansRateLimitingCore();
+        collection.Configure(configure);
+        return collection;
+    }
+
     public static IServiceCollection AddOrleansRateLimiterOptions(this IServiceCollection collection, string name, ConcurrencyLimiterOptions options)
     {
         collection.AddSingleton(new RateLimiterConfig(name, options));

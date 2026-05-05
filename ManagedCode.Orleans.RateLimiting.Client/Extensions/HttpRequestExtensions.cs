@@ -7,14 +7,16 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Extensions;
 
 public static class HttpRequestExtensions
 {
+    private static readonly string[] DefaultIpHeaders =
+    [
+        "X-Real-IP",
+        "X-Forwarded-For",
+        "REMOTE_ADDR"
+    ];
+
     public static string GetClientIpAddress(this HttpRequest request)
     {
-        return GetClientIpAddress(request, new[]
-        {
-            "X-Real-IP",
-            "X-Forwarded-For",
-            "REMOTE_ADDR"
-        });
+        return GetClientIpAddress(request, DefaultIpHeaders);
     }
 
     public static string GetClientIpAddress(this HttpRequest request, string[] headers)

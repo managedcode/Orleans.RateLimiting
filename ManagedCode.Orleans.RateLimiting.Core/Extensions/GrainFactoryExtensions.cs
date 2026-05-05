@@ -12,37 +12,32 @@ public static class GrainFactoryExtensions
 {
     public static ILimiterHolder GetRateLimiter<T>(this IGrainFactory factory, string key) where T : IRateLimiterGrain
     {
-        ILimiterHolder? limiter = typeof(T) switch
+        return typeof(T) switch
         {
             var type when type == typeof(IFixedWindowRateLimiterGrain) => factory.GetFixedWindowRateLimiter(key),
             var type when type == typeof(IConcurrencyLimiterGrain) => factory.GetConcurrencyLimiter(key),
             var type when type == typeof(ISlidingWindowRateLimiterGrain) => factory.GetSlidingWindowRateLimiter(key),
             var type when type == typeof(ITokenBucketRateLimiterGrain) => factory.GetTokenBucketRateLimiter(key),
 
-            _ => null //throw new ArgumentException("Unknown rate limiter grain type")
+            _ => throw new System.NotSupportedException($"Rate limiter grain type '{typeof(T).FullName}' is not supported.")
         };
-
-        return limiter!;
     }
 
     public static ILimiterHolder? GetRateLimiterByConfig(this IGrainFactory factory, string key, string configurationName, IEnumerable<RateLimiterConfig> configs)
     {
-        var name = configurationName.ToLowerInvariant();
-        var option = configs.FirstOrDefault(f => f.Name == name);
+        var option = configs.FirstOrDefault(f => f.NameEquals(configurationName));
         if (option is null)
             return null;
 
-        ILimiterHolder? limiter = option.Configuration switch
+        return option.Configuration switch
         {
             FixedWindowRateLimiterOptions options => factory.GetFixedWindowRateLimiter(key, options),
             ConcurrencyLimiterOptions options => factory.GetConcurrencyLimiter(key, options),
             SlidingWindowRateLimiterOptions options => factory.GetSlidingWindowRateLimiter(key, options),
             TokenBucketRateLimiterOptions options => factory.GetTokenBucketRateLimiter(key, options),
 
-            _ => null //throw new ArgumentException("Unknown rate limiter grain type")
+            _ => null
         };
-
-        return limiter;
     }
 
     public static FixedWindowRateLimiterHolder GetFixedWindowRateLimiter(this IGrainFactory factory, string key)

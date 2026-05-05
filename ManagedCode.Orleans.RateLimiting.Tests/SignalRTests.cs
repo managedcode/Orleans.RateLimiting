@@ -16,23 +16,49 @@ public class SignalRTests
 
 
     [Test]
-    public async Task Some()
+    public async Task HubConnectionsStart()
+    {
+        var firstConnection = _testApp.CreateSignalRClient(nameof(TestHub));
+        await firstConnection.StartAsync();
+        firstConnection.State.ShouldBe(HubConnectionState.Connected);
+
+        var secondConnection = _testApp.CreateSignalRClient(nameof(TestHub));
+        await secondConnection.StartAsync();
+        secondConnection.State.ShouldBe(HubConnectionState.Connected);
+    }
+
+    [Test]
+    public async Task HubInvocationsAreRateLimited()
+    {
+        var connections = Enumerable.Range(0, 4).Select(_ => _testApp.CreateSignalRClient(nameof(TestHub))).ToArray();
+        try
+        {
+            foreach (var connection in connections)
+                await connection.StartAsync();
+
+            var calls = connections.Select(InvokeHubAsync);
+            var results = await Task.WhenAll(calls);
+
+            results.Count(result => result).ShouldBe(1);
+            results.Count(result => !result).ShouldBe(3);
+        }
+        finally
+        {
+            foreach (var connection in connections)
+                await connection.DisposeAsync();
+        }
+    }
+
+    private static async Task<bool> InvokeHubAsync(HubConnection connection)
     {
         try
         {
-            var anonymousHub11 = _testApp.CreateSignalRClient(nameof(TestHub));
-            await anonymousHub11.StartAsync();
-            anonymousHub11.State.ShouldBe(HubConnectionState.Connected);
+            await connection.InvokeAsync<int>(nameof(TestHub.DoTest));
+            return true;
         }
-        catch (Exception e)
+        catch
         {
-            Console.WriteLine(e);
-            throw;
+            return false;
         }
-
-        var anonymousHub = _testApp.CreateSignalRClient(nameof(TestHub));
-        await anonymousHub.StartAsync();
-        anonymousHub.State.ShouldBe(HubConnectionState.Connected);
-
     }
 }

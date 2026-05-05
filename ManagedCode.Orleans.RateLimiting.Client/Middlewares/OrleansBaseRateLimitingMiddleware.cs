@@ -58,7 +58,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
         }
     }
 
-    protected (T attribute, string? postfix)? TryGetAttribute<T>(HttpContext httpContext) where T : Attribute, IRateLimiterAttribute
+    protected (T attribute, string? postfix)? TryGetAttribute<T>(HttpContext httpContext) where T : Attribute, IRateLimiterPolicy
     {
         var endpoint = httpContext.GetEndpoint();
 
@@ -89,7 +89,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
 
     protected ILimiterHolder? TryGetLimiterHolder(string key, string configurationName)
     {
-        var limiter = _client.GetRateLimiterByConfig(key, configurationName, _services.GetService<IEnumerable<RateLimiterConfig>>());
+        var limiter = _client.GetRateLimiterByConfig(key, configurationName, _services.GetServices<RateLimiterConfig>());
 
         if (limiter is null)
             _logger.LogError("Configuration {ConfigurationName} not found for RateLimiter", configurationName);

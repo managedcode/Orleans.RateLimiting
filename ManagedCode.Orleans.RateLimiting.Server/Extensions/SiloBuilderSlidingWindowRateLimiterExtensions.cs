@@ -10,6 +10,7 @@ public static class SiloBuilderSlidingWindowRateLimiterExtensions
 {
     public static ISiloBuilder AddOrleansSlidingWindowRateLimiter(this ISiloBuilder siloBuilder, Action<SlidingWindowRateLimiterOptions> defaultOptions)
     {
+        siloBuilder.AddOrleansRateLimiting();
         siloBuilder.Services.AddOptions<SlidingWindowRateLimiterOptions>().Configure(defaultOptions.Invoke);
         siloBuilder.AddIncomingGrainCallFilter<SlidingWindowRateLimiterIncomingFilter>();
         return siloBuilder;

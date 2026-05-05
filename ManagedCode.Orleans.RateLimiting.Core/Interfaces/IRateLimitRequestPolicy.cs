@@ -7,5 +7,5 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 
 public interface IRateLimitRequestPolicy
 {
-    ValueTask<IReadOnlyList<RateLimitRequestPartition>> GetPartitionsAsync(RateLimitRequestContext context, CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyList<RateLimitRequestRule>> GetRulesAsync(RateLimitRequestContext context, CancellationToken cancellationToken = default);
 }

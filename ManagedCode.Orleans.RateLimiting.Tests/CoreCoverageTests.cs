@@ -7,8 +7,11 @@ using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
+using ManagedCode.Orleans.RateLimiting.Core.Options;
+using ManagedCode.Orleans.RateLimiting.Core.Services;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests;
@@ -134,9 +137,74 @@ public class CoreCoverageTests
 
         var userPartition = new RateLimitRequestPartition(RateLimitPartitionKind.User, context.UserId!, "user-policy");
         var groupPartition = new RateLimitRequestPartition(RateLimitPartitionKind.Group, context.GroupId!);
+        var userRule = new RateLimitRequestRule(RateLimitPartitionKind.User, "user-policy") { Required = true };
 
         context.Metadata["route"].ShouldBe("/checkout");
         userPartition.ToString().ShouldBe("User:user-policy:user-1");
         groupPartition.ToString().ShouldBe("Group:group-a");
+        userRule.ConfigurationName.ShouldBe("user-policy");
+        userRule.Required.ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task DefaultRequestOrchestratorCreatesLimitersForConfiguredPartitions()
+    {
+        var options = new RateLimitRequestOrchestrationOptions()
+            .AddUser("fixed", required: true)
+            .AddGroup("fixed")
+            .AddCustom("fixed", "route", keyPrefix: "custom");
+
+        var configs = new RateLimiterConfig[]
+        {
+            new("fixed", new FixedWindowRateLimiterOptions { PermitLimit = 10, QueueLimit = 0, Window = TimeSpan.FromSeconds(1) })
+        };
+
+        var orchestrator = new DefaultRateLimitRequestOrchestrator(
+            _testApp.Cluster.Client,
+            configs,
+            [new OptionsRateLimitRequestPolicy(Options.Create(options))],
+            new DefaultRateLimitRequestKeyResolver());
+
+        await using var holder = await orchestrator.CreateLimiterGroupAsync(new RateLimitRequestContext
+        {
+            OperationName = "checkout",
+            UserId = "user-1",
+            GroupId = "group-a",
+            Metadata = new Dictionary<string, string> { ["route"] = "/checkout" }
+        });
+
+        holder.Count.ShouldBe(3);
+        var lease = await holder.AcquireAsync();
+        lease.ShouldBeNull();
+    }
+
+    [Test]
+    public async Task DefaultRequestOrchestratorFailsFastForRequiredMissingKeysAndConfigs()
+    {
+        var requiredUser = new RateLimitRequestOrchestrationOptions().AddUser("fixed", required: true);
+        var missingConfig = new RateLimitRequestOrchestrationOptions().AddUser("missing", required: true);
+
+        var configs = new RateLimiterConfig[]
+        {
+            new("fixed", new FixedWindowRateLimiterOptions { PermitLimit = 1, QueueLimit = 0, Window = TimeSpan.FromSeconds(1) })
+        };
+
+        var orchestrator = new DefaultRateLimitRequestOrchestrator(
+            _testApp.Cluster.Client,
+            configs,
+            [new OptionsRateLimitRequestPolicy(Options.Create(requiredUser))],
+            new DefaultRateLimitRequestKeyResolver());
+
+        await Should.ThrowAsync<RateLimitPartitionKeyNotFoundException>(async () =>
+            await orchestrator.CreateLimiterGroupAsync(new RateLimitRequestContext { OperationName = "checkout" }));
+
+        orchestrator = new DefaultRateLimitRequestOrchestrator(
+            _testApp.Cluster.Client,
+            configs,
+            [new OptionsRateLimitRequestPolicy(Options.Create(missingConfig))],
+            new DefaultRateLimitRequestKeyResolver());
+
+        await Should.ThrowAsync<RateLimitConfigurationNotFoundException>(async () =>
+            await orchestrator.CreateLimiterGroupAsync(new RateLimitRequestContext { OperationName = "checkout", UserId = "user-1" }));
     }
 }

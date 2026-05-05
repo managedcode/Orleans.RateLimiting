@@ -10,6 +10,7 @@ public static class SiloBuilderConcurrencyLimiterExtensions
 {
     public static ISiloBuilder AddOrleansConcurrencyLimiter(this ISiloBuilder siloBuilder, Action<ConcurrencyLimiterOptions> defaultOptions)
     {
+        siloBuilder.AddOrleansRateLimiting();
         siloBuilder.Services.AddOptions<ConcurrencyLimiterOptions>().Configure(defaultOptions.Invoke);
         siloBuilder.AddIncomingGrainCallFilter<ConcurrencyLimiterIncomingFilter>();
         return siloBuilder;

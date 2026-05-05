@@ -10,9 +10,9 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models;
 [GenerateSerializer]
 public class RateLimitLeaseMetadata
 {
-    public RateLimitLeaseMetadata(Guid guid, GrainId grainId, RateLimitLease lease)
+    public RateLimitLeaseMetadata(Guid leaseId, GrainId grainId, RateLimitLease lease)
     {
-        LeaseId = guid;
+        LeaseId = leaseId;
         GrainId = grainId;
         IsAcquired = lease.IsAcquired;
         Metadata = lease.GetAllMetadata().ToArray();
@@ -23,7 +23,7 @@ public class RateLimitLeaseMetadata
         LeaseId = Guid.Empty;
         GrainId = grainId;
         IsAcquired = false;
-        Metadata = new[] { new KeyValuePair<string, object>("REASON_PHRASE", "Lease not acquired") };
+        Metadata = [new KeyValuePair<string, object?>("REASON_PHRASE", "Lease not acquired")];
     }
 
     [Id(0)]

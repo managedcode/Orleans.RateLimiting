@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
@@ -11,16 +11,18 @@ namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimiter : RateLimiter
 {
-    protected readonly ILogger _logger;
-    private readonly Dictionary<Guid, RateLimitLease> _rateLimitLeases = new();
-    protected TOptions Options;
+    private readonly ConcurrentDictionary<Guid, RateLimitLease> _rateLimitLeases = new();
+    private readonly ILogger _logger;
+    private TOptions _options;
 
     protected RateLimiterGrain(ILogger logger, TOptions options)
     {
         _logger = logger;
-        Options = options;
+        _options = options;
         RateLimiter = CreateDefaultRateLimiter();
     }
+
+    protected TOptions Options => _options;
 
     protected TLimiter RateLimiter { get; set; }
 
@@ -28,22 +30,23 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
 
     public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1)
     {
-        var guid = Guid.NewGuid();
+        var leaseId = Guid.NewGuid();
+        var lease = await RateLimiter.AcquireAsync(permitCount);
+        var metadata = new RateLimitLeaseMetadata(leaseId, this.GetGrainId(), lease);
 
-        var lease = await Task.Run(async () => await RateLimiter.AcquireAsync(permitCount));
-        _rateLimitLeases.Add(guid, lease);
+        if (lease.IsAcquired)
+            _rateLimitLeases.TryAdd(leaseId, lease);
+        else
+            lease.Dispose();
 
-        var orleansLease = new RateLimitLeaseMetadata(guid, this.GetGrainId(), lease);
-        return orleansLease;
+        return metadata;
     }
 
-    public async ValueTask ReleaseLease(Guid guid)
+    public ValueTask ReleaseLease(Guid leaseId)
     {
-        await Task.Run(() =>
-        {
-            _rateLimitLeases.Remove(guid, out var lease);
-            lease?.Dispose();
-        });
+        _rateLimitLeases.TryRemove(leaseId, out var lease);
+        lease?.Dispose();
+        return ValueTask.CompletedTask;
     }
 
     public ValueTask<RateLimiterStatistics?> GetStatisticsAsync()
@@ -53,7 +56,12 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
 
     public ValueTask ConfigureAsync(TOptions options)
     {
-        Options = options;
+        foreach (var lease in _rateLimitLeases.Values)
+            lease.Dispose();
+
+        _rateLimitLeases.Clear();
+        RateLimiter.Dispose();
+        _options = options;
         RateLimiter = CreateDefaultRateLimiter();
         _logger.LogInformation("Configured {LimiterType} with id:{GrainId}", typeof(TLimiter).Name, this.GetPrimaryKeyString());
         return ValueTask.CompletedTask;
@@ -61,6 +69,6 @@ public abstract class RateLimiterGrain<TLimiter, TOptions> : Grain where TLimite
 
     public ValueTask<TOptions> GetConfiguration()
     {
-        return ValueTask.FromResult(Options);
+        return ValueTask.FromResult(_options);
     }
 }

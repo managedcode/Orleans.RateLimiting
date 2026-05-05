@@ -14,6 +14,6 @@ public class TestController : ControllerBase
     public async Task<ActionResult<string>> Authorize()
     {
         await Task.Delay(500);
-        return "Authorize";
+        return $"Authorize:{HttpContext.TraceIdentifier}";
     }
 }

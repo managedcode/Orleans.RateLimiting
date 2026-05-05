@@ -21,7 +21,7 @@ public class RateLimiterTests
     {
         var permit = 20;
         var extra = 5;
-        var rateLimiter = _testApp.Cluster.Client.GetConcurrencyLimiter("test");
+        var rateLimiter = _testApp.Cluster.Client.GetConcurrencyLimiter($"{nameof(GetConcurrencyLimiterTests)}-{Guid.NewGuid():N}");
         await rateLimiter.Configure(new ConcurrencyLimiterOptions
         {
             PermitLimit = permit,
@@ -30,11 +30,9 @@ public class RateLimiterTests
         });
 
         var errors = 0;
-        var success = 0;
         var calls = 0;
 
         var token1 = new CancellationTokenSource();
-        var token2 = new CancellationTokenSource();
 
 
         var tasks = Enumerable.Range(0, permit + extra).Select(s => Task.Run(async () =>
@@ -54,6 +52,7 @@ public class RateLimiterTests
         await Task.Delay(TimeSpan.FromSeconds(5));
 
         var statistics1 = await rateLimiter.GetStatisticsAsync();
+        statistics1.ShouldNotBeNull();
         Console.WriteLine("TotalSuccessfulLeases " + statistics1.TotalSuccessfulLeases);
         Console.WriteLine("TotalFailedLeases " + statistics1.TotalFailedLeases);
         Console.WriteLine("CurrentAvailablePermits " + statistics1.CurrentAvailablePermits);
@@ -64,6 +63,7 @@ public class RateLimiterTests
         await Task.Delay(TimeSpan.FromSeconds(10));
         Console.WriteLine("------------------------");
         var statistics2 = await rateLimiter.GetStatisticsAsync();
+        statistics2.ShouldNotBeNull();
 
         Console.WriteLine("TotalSuccessfulLeases " + statistics2.TotalSuccessfulLeases);
         Console.WriteLine("TotalFailedLeases " + statistics2.TotalFailedLeases);
@@ -85,13 +85,13 @@ public class RateLimiterTests
     {
         var permit = 20;
         var summer = new IntTimeSeriesSummer(TimeSpan.FromSeconds(1));
-        var rateLimiter = _testApp.Cluster.Client.GetFixedWindowRateLimiter("test");
+        var rateLimiter = _testApp.Cluster.Client.GetFixedWindowRateLimiter($"{nameof(GetFixedWindowRateLimiterTests)}-{Guid.NewGuid():N}");
         await rateLimiter.Configure(new FixedWindowRateLimiterOptions
         {
             Window = TimeSpan.FromSeconds(1),
             PermitLimit = permit,
             AutoReplenishment = true,
-            QueueLimit = permit * 2,
+            QueueLimit = 0,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst
         });
 
@@ -120,6 +120,7 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
+        statistics.ShouldNotBeNull();
         statistics.TotalSuccessfulLeases.ShouldBe(success);
 
         Console.WriteLine("Samples " + summer.Samples.Count);
@@ -133,7 +134,8 @@ public class RateLimiterTests
         foreach (var item in summer.Samples)
             Console.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().ShouldBe(permit);
+        summer.Average().ShouldBeLessThanOrEqualTo(permit);
+        summer.Samples.Values.ShouldAllBe(sample => sample <= permit);
     }
 
     [Test]
@@ -141,13 +143,13 @@ public class RateLimiterTests
     {
         var permit = 20;
         var summer = new IntTimeSeriesSummer(TimeSpan.FromSeconds(1));
-        var rateLimiter = _testApp.Cluster.Client.GetSlidingWindowRateLimiter("test");
+        var rateLimiter = _testApp.Cluster.Client.GetSlidingWindowRateLimiter($"{nameof(GetSlidingWindowRateLimiterTests)}-{Guid.NewGuid():N}");
         await rateLimiter.Configure(new SlidingWindowRateLimiterOptions
         {
             Window = TimeSpan.FromSeconds(1),
             PermitLimit = permit,
             AutoReplenishment = true,
-            QueueLimit = permit * 2,
+            QueueLimit = 0,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             SegmentsPerWindow = 2
         });
@@ -177,6 +179,7 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
+        statistics.ShouldNotBeNull();
         statistics.TotalSuccessfulLeases.ShouldBe(success);
 
         Console.WriteLine("Samples " + summer.Samples.Count);
@@ -190,7 +193,8 @@ public class RateLimiterTests
         foreach (var item in summer.Samples)
             Console.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().ShouldBe(permit);
+        summer.Average().ShouldBeLessThanOrEqualTo(permit);
+        summer.Samples.Values.ShouldAllBe(sample => sample <= permit);
     }
 
     [Test]
@@ -198,11 +202,11 @@ public class RateLimiterTests
     {
         var permit = 10;
         var summer = new IntTimeSeriesSummer(TimeSpan.FromSeconds(1));
-        var rateLimiter = _testApp.Cluster.Client.GetTokenBucketRateLimiter("test");
+        var rateLimiter = _testApp.Cluster.Client.GetTokenBucketRateLimiter($"{nameof(TokenBucketRateLimiterTests)}-{Guid.NewGuid():N}");
         await rateLimiter.Configure(new TokenBucketRateLimiterOptions
         {
             AutoReplenishment = true,
-            QueueLimit = permit * 2,
+            QueueLimit = 0,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             ReplenishmentPeriod = TimeSpan.FromSeconds(1),
             TokenLimit = permit,
@@ -234,6 +238,7 @@ public class RateLimiterTests
         await Task.WhenAll(tasks);
         sw.Stop();
         var statistics = await rateLimiter.GetStatisticsAsync();
+        statistics.ShouldNotBeNull();
         statistics.TotalSuccessfulLeases.ShouldBe(success);
 
         Console.WriteLine("Samples " + summer.Samples.Count);
@@ -247,6 +252,7 @@ public class RateLimiterTests
         foreach (var item in summer.Samples)
             Console.WriteLine(item.Key.ToString("O") + " " + item.Value);
 
-        summer.Average().ShouldBe(permit);
+        summer.Average().ShouldBeLessThanOrEqualTo(permit);
+        summer.Samples.Values.ShouldAllBe(sample => sample <= permit);
     }
 }

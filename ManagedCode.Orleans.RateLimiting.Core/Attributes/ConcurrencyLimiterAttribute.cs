@@ -4,7 +4,7 @@ using System.Threading.RateLimiting;
 namespace ManagedCode.Orleans.RateLimiting.Core.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<ConcurrencyLimiterOptions>
+public class ConcurrencyLimiterAttribute : Attribute, ILimiterPolicy<ConcurrencyLimiterOptions>
 {
     /// <summary>
     ///     ConcurrencyLimiterAttribute
@@ -20,7 +20,7 @@ public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<Concurre
     ///     Must be set to a value >= 0 by the time these options are passed to the constructor of <see cref="ConcurrencyLimiter" />.
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync" /> when not enough resources can be leased.</param>
-    public ConcurrencyLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, int permitLimit = default, int queueLimit = 0,
+    public ConcurrencyLimiterAttribute(KeyType keyType = KeyType.GrainId, string? key = default, int permitLimit = default, int queueLimit = 0,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
         Key = key;
@@ -41,7 +41,7 @@ public class ConcurrencyLimiterAttribute : Attribute, ILimiterAttribute<Concurre
             };
     }
 
-    public ConcurrencyLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    public ConcurrencyLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string? key = default)
     {
         ConfigurationName = configurationName;
         Key = key;

@@ -3,7 +3,7 @@ using System;
 namespace ManagedCode.Orleans.RateLimiting.Client.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class IpRateLimiterAttribute : Attribute, IRateLimiterAttribute
+public class IpRateLimiterAttribute : Attribute, IRateLimiterPolicy
 {
     public IpRateLimiterAttribute(string configurationName)
     {

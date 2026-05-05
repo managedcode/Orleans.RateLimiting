@@ -1,3 +1,4 @@
+using System.Globalization;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces;
 
@@ -24,7 +25,7 @@ public class SlidingWindowRateLimiterGrainTests
         {
             try
             {
-                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString()).Do();
+                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString(CultureInfo.InvariantCulture)).Run();
                 Interlocked.Increment(ref success);
             }
             catch
@@ -51,7 +52,7 @@ public class SlidingWindowRateLimiterGrainTests
         {
             try
             {
-                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString()).Go();
+                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString(CultureInfo.InvariantCulture)).Go();
                 Interlocked.Increment(ref success);
             }
             catch
@@ -77,7 +78,7 @@ public class SlidingWindowRateLimiterGrainTests
         {
             try
             {
-                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString()).Take();
+                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString(CultureInfo.InvariantCulture)).Take();
                 Interlocked.Increment(ref success);
             }
             catch
@@ -103,7 +104,7 @@ public class SlidingWindowRateLimiterGrainTests
         {
             try
             {
-                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString()).Skip();
+                await _testApp.Cluster.Client.GetGrain<ITestSlidingWindowRateLimiterGrain>(s.ToString(CultureInfo.InvariantCulture)).Skip();
                 Interlocked.Increment(ref success);
             }
             catch

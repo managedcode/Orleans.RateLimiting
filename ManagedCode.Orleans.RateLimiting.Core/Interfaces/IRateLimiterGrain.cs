@@ -10,5 +10,5 @@ public interface IRateLimiterGrain : IGrainWithStringKey
 {
     Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1);
     ValueTask<RateLimiterStatistics?> GetStatisticsAsync();
-    ValueTask ReleaseLease(Guid guid);
+    ValueTask ReleaseLease(Guid leaseId);
 }

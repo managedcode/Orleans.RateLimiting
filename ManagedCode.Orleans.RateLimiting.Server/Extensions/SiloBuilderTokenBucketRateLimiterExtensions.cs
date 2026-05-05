@@ -10,6 +10,7 @@ public static class SiloBuilderTokenBucketRateLimiterExtensions
 {
     public static ISiloBuilder AddOrleansTokenBucketRateLimiter(this ISiloBuilder siloBuilder, Action<TokenBucketRateLimiterOptions> defaultOptions)
     {
+        siloBuilder.AddOrleansRateLimiting();
         siloBuilder.Services.AddOptions<TokenBucketRateLimiterOptions>().Configure(defaultOptions.Invoke);
         siloBuilder.AddIncomingGrainCallFilter<TokenBucketRateLimiterIncomingFilter>();
         return siloBuilder;

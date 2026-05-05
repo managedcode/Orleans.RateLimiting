@@ -4,7 +4,7 @@ using System.Threading.RateLimiting;
 namespace ManagedCode.Orleans.RateLimiting.Core.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<FixedWindowRateLimiterOptions>
+public class FixedWindowRateLimiterAttribute : Attribute, ILimiterPolicy<FixedWindowRateLimiterOptions>
 {
     /// <summary>
     ///     FixedWindowRateLimiterAttribute
@@ -28,7 +28,7 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
     ///     Must be set to a value > 0 by the time these options are passed to the constructor of <see cref="FixedWindowRateLimiter" />.
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync" /> when not enough resources can be leased.</param>
-    public FixedWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, int windowInSeconds = default, int permitLimit = default,
+    public FixedWindowRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string? key = default, int windowInSeconds = default, int permitLimit = default,
         int queueLimit = 0, bool autoReplenishment = true, QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
         Key = key;
@@ -52,7 +52,7 @@ public class FixedWindowRateLimiterAttribute : Attribute, ILimiterAttribute<Fixe
             };
     }
 
-    public FixedWindowRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    public FixedWindowRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string? key = default)
     {
         ConfigurationName = configurationName;
         Key = key;

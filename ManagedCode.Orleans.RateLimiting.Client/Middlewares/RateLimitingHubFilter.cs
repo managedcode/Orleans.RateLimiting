@@ -1,41 +1,81 @@
 using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
-using ManagedCode.Orleans.RateLimiting.Core.Extensions;
+using ManagedCode.Orleans.RateLimiting.Client.Options;
+using ManagedCode.Orleans.RateLimiting.Core.Exceptions;
+using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
+using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using Orleans;
+using Microsoft.Extensions.Options;
 
 namespace ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 
 public class RateLimitingHubFilter : IHubFilter
 {
-    private readonly IClusterClient _client;
     private readonly ILogger<RateLimitingHubFilter> _logger;
+    private readonly IRateLimitRequestOrchestrator _orchestrator;
+    private readonly SignalRRateLimitingOptions _options;
 
-    public RateLimitingHubFilter(ILogger<RateLimitingHubFilter> logger, IClusterClient client)
+    public RateLimitingHubFilter(
+        ILogger<RateLimitingHubFilter> logger,
+        IRateLimitRequestOrchestrator orchestrator,
+        IOptions<SignalRRateLimitingOptions> options)
     {
         _logger = logger;
-        _client = client;
+        _orchestrator = orchestrator;
+        _options = options.Value;
     }
 
     public async ValueTask<object?> InvokeMethodAsync(HubInvocationContext invocationContext, Func<HubInvocationContext, ValueTask<object?>> next)
     {
-        var limiter = _client.GetFixedWindowRateLimiter(invocationContext.Context.User.Identity.Name);
+        await using var holder = await _orchestrator.CreateLimiterGroupAsync(CreateContext(invocationContext));
+        var lease = await holder.AcquireAsync();
+        if (lease is not null)
+        {
+            _logger.LogInformation("SignalR invocation {HubMethodName} was rate limited: {Reason}", invocationContext.HubMethodName, lease.Reason);
+            throw new RateLimitExceededException(lease.Reason, lease.RetryAfter);
+        }
 
-        await using var lease = await limiter.AcquireAsync();
-        lease.ThrowIfNotAcquired();
         return await next(invocationContext);
     }
 
-    // Optional method
     public Task OnConnectedAsync(HubLifetimeContext context, Func<HubLifetimeContext, Task> next)
     {
         return next(context);
     }
 
-    // Optional method
-    public Task OnDisconnectedAsync(HubLifetimeContext context, Exception exception, Func<HubLifetimeContext, Exception, Task> next)
+    public Task OnDisconnectedAsync(HubLifetimeContext context, Exception? exception, Func<HubLifetimeContext, Exception?, Task> next)
     {
         return next(context, exception);
+    }
+
+    private RateLimitRequestContext CreateContext(HubInvocationContext invocationContext)
+    {
+        var httpContext = invocationContext.Context.GetHttpContext();
+        var user = invocationContext.Context.User;
+        var userKey = invocationContext.Context.UserIdentifier
+                      ?? user?.FindFirstValue(ClaimTypes.NameIdentifier)
+                      ?? user?.Identity?.Name
+                      ?? _options.AnonymousUserKey;
+
+        return new RateLimitRequestContext
+        {
+            OperationName = invocationContext.HubMethodName,
+            UserId = userKey,
+            GroupId = user?.FindFirstValue("group") ?? user?.FindFirstValue("groups") ?? user?.FindFirstValue(ClaimTypes.GroupSid),
+            TenantId = user?.FindFirstValue("tenant_id") ?? user?.FindFirstValue("tid"),
+            Role = user?.FindFirstValue(ClaimTypes.Role),
+            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
+            Resource = $"{invocationContext.Hub.GetType().FullName}.{invocationContext.HubMethodName}",
+            Metadata = new Dictionary<string, string>
+            {
+                ["hub"] = invocationContext.Hub.GetType().FullName ?? invocationContext.Hub.GetType().Name,
+                ["method"] = invocationContext.HubMethodName,
+                ["configuration"] = _options.ConfigurationName,
+                ["partition"] = _options.PartitionKind.ToString()
+            }
+        };
     }
 }

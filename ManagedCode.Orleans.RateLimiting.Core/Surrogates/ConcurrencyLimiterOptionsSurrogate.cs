@@ -13,11 +13,12 @@ public struct ConcurrencyLimiterOptionsSurrogate
         QueueLimit = 0;
     }
 
-    [Id(0)] public int PermitLimit;
+    [Id(0)]
+    public int PermitLimit { get; set; }
 
+    [Id(1)]
+    public QueueProcessingOrder QueueProcessingOrder { get; set; } = QueueProcessingOrder.OldestFirst;
 
-    [Id(1)] public QueueProcessingOrder QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-
-
-    [Id(2)] public int QueueLimit;
+    [Id(2)]
+    public int QueueLimit { get; set; }
 }

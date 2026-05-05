@@ -2,7 +2,7 @@
 
 public interface ITestConcurrencyLimiterGrain : IGrainWithStringKey
 {
-    Task<string> Do();
+    Task<string> Run();
     Task<string> Go();
     Task<string> Take();
     Task<string> Skip();

@@ -1,35 +1,53 @@
+using System;
 using System.Threading.RateLimiting;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Models;
 
-public class RateLimiterConfig
+public sealed class RateLimiterConfig
 {
     public RateLimiterConfig(string name, ConcurrencyLimiterOptions options)
     {
-        Name = name.ToLowerInvariant();
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(options);
+
+        Name = name;
         Configuration = options;
     }
 
     public RateLimiterConfig(string name, FixedWindowRateLimiterOptions options)
     {
-        Name = name.ToLowerInvariant();
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(options);
+
+        Name = name;
         Configuration = options;
     }
 
     public RateLimiterConfig(string name, SlidingWindowRateLimiterOptions options)
     {
-        Name = name.ToLowerInvariant();
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(options);
+
+        Name = name;
         Configuration = options;
     }
 
     public RateLimiterConfig(string name, TokenBucketRateLimiterOptions options)
     {
-        Name = name.ToLowerInvariant();
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(options);
+
+        Name = name;
         Configuration = options;
     }
 
-    public string Name { get; private set; }
+    public string Name { get; }
     public object Configuration { get; }
+
+    public bool NameEquals(string name)
+    {
+        return string.Equals(Name, name, StringComparison.OrdinalIgnoreCase);
+    }
 
     public T? GetLimiterOptions<T>() where T : class
     {

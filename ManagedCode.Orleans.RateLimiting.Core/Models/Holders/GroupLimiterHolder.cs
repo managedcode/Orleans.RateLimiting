@@ -7,24 +7,32 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 
 public class GroupLimiterHolder : IAsyncDisposable, IDisposable
 {
-    private readonly Dictionary<ILimiterHolder, OrleansRateLimitLease?> _holders = new();
+    private readonly List<LimiterEntry> _holders = [];
+    private bool _disposed;
+
+    public int Count => _holders.Count;
 
     public async ValueTask DisposeAsync()
     {
-        await Task.WhenAll(_holders.Values.Where(w => w != null).Select(s => s.DisposeAsync().AsTask()));
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        await ReleaseAcquiredAsync();
+        GC.SuppressFinalize(this);
     }
 
     public void Dispose()
     {
-        foreach (var pair in _holders)
-            pair.Value?.Dispose();
+        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        GC.SuppressFinalize(this);
     }
 
     public bool AddLimiter(ILimiterHolder? holder)
     {
         if (holder is not null)
         {
-            _holders.Add(holder, null);
+            _holders.Add(new LimiterEntry(holder));
             return true;
         }
 
@@ -33,15 +41,28 @@ public class GroupLimiterHolder : IAsyncDisposable, IDisposable
 
     public async Task<OrleansRateLimitLease?> AcquireAsync()
     {
-        foreach (var holder in _holders.Keys)
+        for (var index = 0; index < _holders.Count; index++)
         {
-            var lease = await holder.AcquireAndConfigureAsync();
+            var entry = _holders[index];
+            var lease = await entry.Holder.AcquireAndConfigureAsync();
             if (lease.IsAcquired)
-                _holders[holder] = lease;
+            {
+                _holders[index] = entry with { Lease = lease };
+            }
             else
+            {
+                await ReleaseAcquiredAsync();
                 return lease;
+            }
         }
 
         return null;
     }
+
+    private async Task ReleaseAcquiredAsync()
+    {
+        await Task.WhenAll(_holders.Select(entry => entry.Lease).Where(lease => lease is not null).Select(lease => lease!.DisposeAsync().AsTask()));
+    }
+
+    private readonly record struct LimiterEntry(ILimiterHolder Holder, OrleansRateLimitLease? Lease = null);
 }

@@ -3,7 +3,7 @@ using System;
 namespace ManagedCode.Orleans.RateLimiting.Client.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class InRoleIpRateLimiterAttribute : Attribute, IRateLimiterAttribute
+public class InRoleIpRateLimiterAttribute : Attribute, IRateLimiterPolicy
 {
     public InRoleIpRateLimiterAttribute(string configurationName, string role)
     {

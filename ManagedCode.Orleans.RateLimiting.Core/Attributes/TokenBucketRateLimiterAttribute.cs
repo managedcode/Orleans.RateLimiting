@@ -4,7 +4,7 @@ using System.Threading.RateLimiting;
 namespace ManagedCode.Orleans.RateLimiting.Core.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<TokenBucketRateLimiterOptions>
+public class TokenBucketRateLimiterAttribute : Attribute, ILimiterPolicy<TokenBucketRateLimiterOptions>
 {
     /// <summary>
     ///     FixedWindowRateLimiterAttribute
@@ -32,7 +32,7 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
     ///     Must be set to a value > 0 by the time these options are passed to the constructor of <see cref="TokenBucketRateLimiter" />.
     /// </param>
     /// <param name="queueProcessingOrder">Determines the behaviour of <see cref="RateLimiter.AcquireAsync" /> when not enough resources can be leased.</param>
-    public TokenBucketRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string key = default, int replenishmentPeriodInSeconds = default,
+    public TokenBucketRateLimiterAttribute(KeyType keyType = KeyType.GrainId, string? key = default, int replenishmentPeriodInSeconds = default,
         int tokensPerPeriod = default, int queueLimit = 0, int tokenLimit = default, bool autoReplenishment = true,
         QueueProcessingOrder queueProcessingOrder = QueueProcessingOrder.OldestFirst)
     {
@@ -59,7 +59,7 @@ public class TokenBucketRateLimiterAttribute : Attribute, ILimiterAttribute<Toke
             };
     }
 
-    public TokenBucketRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string key = default)
+    public TokenBucketRateLimiterAttribute(string configurationName, KeyType keyType = KeyType.GrainId, string? key = default)
     {
         ConfigurationName = configurationName;
         Key = key;

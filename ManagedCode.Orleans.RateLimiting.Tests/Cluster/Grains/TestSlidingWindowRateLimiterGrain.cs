@@ -6,10 +6,10 @@ namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains;
 public class TestSlidingWindowRateLimiterGrain : Grain, ITestSlidingWindowRateLimiterGrain
 {
     [SlidingWindowRateLimiter] //GrainId as key, default options
-    public async Task<string> Do()
+    public async Task<string> Run()
     {
         await Task.Delay(TimeSpan.FromSeconds(5));
-        return "Do";
+        return "Run";
     }
 
     [SlidingWindowRateLimiter(KeyType.Key, "go")] //String as Key, default options

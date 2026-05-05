@@ -16,4 +16,10 @@ public static class ApplicationBuilderExtensions
         applicationBuilder.UseMiddleware<OrleansUserRateLimitingMiddleware>();
         return applicationBuilder;
     }
+
+    public static IApplicationBuilder UseOrleansRequestRateLimiting(this IApplicationBuilder applicationBuilder)
+    {
+        applicationBuilder.UseMiddleware<OrleansRequestRateLimitingMiddleware>();
+        return applicationBuilder;
+    }
 }

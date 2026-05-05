@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Client.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
+using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +14,7 @@ public static class HttpHostProgram
     public static void ConfigureServices(IServiceCollection services)
     {
         services.AddControllers();
-        services.AddSignalR();
+        services.AddSignalR().AddOrleansRateLimiting("SignalR", RateLimitPartitionKind.User);
         services.AddLogging(log => log.AddSimpleConsole());
         services.AddOrleansRateLimiting();
         services.AddOrleansRateLimiterOptions("ip", new FixedWindowRateLimiterOptions
@@ -34,6 +35,13 @@ public static class HttpHostProgram
         {
             QueueLimit = 2,
             PermitLimit = 2,
+            Window = TimeSpan.FromSeconds(1)
+        });
+
+        services.AddOrleansRateLimiterOptions("SignalR", new FixedWindowRateLimiterOptions
+        {
+            QueueLimit = 0,
+            PermitLimit = 1,
             Window = TimeSpan.FromSeconds(1)
         });
     }

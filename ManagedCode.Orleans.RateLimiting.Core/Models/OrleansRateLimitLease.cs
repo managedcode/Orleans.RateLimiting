@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -17,6 +18,7 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
     private readonly GrainId _grainId;
     private readonly Guid _guid;
     private readonly Dictionary<string, string?> _metadata;
+    private bool _disposed;
 
     public OrleansRateLimitLease(RateLimitLeaseMetadata metadata, IGrainFactory grainFactory)
     {
@@ -31,7 +33,7 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
 
     public string Reason => TryGetMetadata("REASON_PHRASE", out var reason) ? reason ?? string.Empty : "Rate limit exceeded";
 
-    public TimeSpan RetryAfter => TryGetMetadata("RETRY_AFTER", out var reason) ? TimeSpan.Parse(reason ?? TimeSpan.Zero.ToString()) : TimeSpan.Zero;
+    public TimeSpan RetryAfter => TryGetMetadata("RETRY_AFTER", out var reason) ? TimeSpan.Parse(reason ?? TimeSpan.Zero.ToString(), CultureInfo.InvariantCulture) : TimeSpan.Zero;
 
     public bool IsAcquired { get; init; }
 
@@ -39,8 +41,16 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (_guid == Guid.Empty)
+        if (_disposed)
             return;
+
+        _disposed = true;
+
+        if (_guid == Guid.Empty)
+        {
+            GC.SuppressFinalize(this);
+            return;
+        }
 
         try
         {
@@ -54,11 +64,14 @@ public class OrleansRateLimitLease : IDisposable, IAsyncDisposable
         {
             // ignore
         }
+
+        GC.SuppressFinalize(this);
     }
 
     public void Dispose()
     {
-        _ = DisposeAsync();
+        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        GC.SuppressFinalize(this);
     }
 
     public void ThrowIfNotAcquired([CallerMemberName] string? caller = null, [CallerLineNumber] int? lineNumber = null, [CallerFilePath] string? filePath = null)

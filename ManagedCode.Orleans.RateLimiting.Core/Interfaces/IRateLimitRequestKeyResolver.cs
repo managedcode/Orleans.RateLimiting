@@ -6,5 +6,5 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 
 public interface IRateLimitRequestKeyResolver
 {
-    ValueTask<string?> ResolveKeyAsync(RateLimitRequestContext context, RateLimitPartitionKind partitionKind, CancellationToken cancellationToken = default);
+    ValueTask<string?> ResolveKeyAsync(RateLimitRequestContext context, RateLimitRequestRule rule, CancellationToken cancellationToken = default);
 }
