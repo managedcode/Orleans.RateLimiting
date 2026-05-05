@@ -64,17 +64,23 @@ public class RateLimitingHubFilter : IHubFilter
         {
             OperationName = invocationContext.HubMethodName,
             UserId = userKey,
-            GroupId = user?.FindFirstValue("group") ?? user?.FindFirstValue("groups") ?? user?.FindFirstValue(ClaimTypes.GroupSid),
-            TenantId = user?.FindFirstValue("tenant_id") ?? user?.FindFirstValue("tid"),
+            GroupId = user?.FindFirstValue(RateLimitMiddlewareConstants.GroupClaimType)
+                      ?? user?.FindFirstValue(RateLimitMiddlewareConstants.GroupsClaimType)
+                      ?? user?.FindFirstValue(ClaimTypes.GroupSid),
+            TenantId = user?.FindFirstValue(RateLimitMiddlewareConstants.TenantIdClaimType)
+                       ?? user?.FindFirstValue(RateLimitMiddlewareConstants.ShortTenantIdClaimType),
             Role = user?.FindFirstValue(ClaimTypes.Role),
             IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
-            Resource = $"{invocationContext.Hub.GetType().FullName}.{invocationContext.HubMethodName}",
+            Resource = string.Concat(
+                invocationContext.Hub.GetType().FullName,
+                RateLimitMiddlewareConstants.ResourceSeparator,
+                invocationContext.HubMethodName),
             Metadata = new Dictionary<string, string>
             {
-                ["hub"] = invocationContext.Hub.GetType().FullName ?? invocationContext.Hub.GetType().Name,
-                ["method"] = invocationContext.HubMethodName,
-                ["configuration"] = _options.ConfigurationName,
-                ["partition"] = _options.PartitionKind.ToString()
+                [RateLimitMiddlewareConstants.HubMetadataKey] = invocationContext.Hub.GetType().FullName ?? invocationContext.Hub.GetType().Name,
+                [RateLimitMiddlewareConstants.MethodMetadataKey] = invocationContext.HubMethodName,
+                [RateLimitMiddlewareConstants.ConfigurationMetadataKey] = _options.ConfigurationName,
+                [RateLimitMiddlewareConstants.PartitionMetadataKey] = _options.PartitionKind.ToString()
             },
             PolicyName = _options.PolicyName
         };

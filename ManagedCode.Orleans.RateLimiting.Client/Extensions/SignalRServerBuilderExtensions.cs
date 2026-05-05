@@ -15,10 +15,11 @@ public static class SignalRServerBuilderExtensions
         string configurationName,
         RateLimitPartitionKind partitionKind = RateLimitPartitionKind.User)
     {
-        builder.Services.AddOrleansRateLimiting(options => options.AddToPolicy("SignalR", partitionKind, configurationName, required: true));
+        builder.Services.AddOrleansRateLimiting(options =>
+            options.AddToPolicy(SignalRRateLimitingDefaults.PolicyName, partitionKind, configurationName, required: true));
         builder.Services.Configure<SignalRRateLimitingOptions>(options =>
         {
-            options.PolicyName = "SignalR";
+            options.PolicyName = SignalRRateLimitingDefaults.PolicyName;
             options.ConfigurationName = configurationName;
             options.PartitionKind = partitionKind;
         });

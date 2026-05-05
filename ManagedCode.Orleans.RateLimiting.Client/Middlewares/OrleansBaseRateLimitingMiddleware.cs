@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Client.Attributes;
@@ -38,7 +37,6 @@ public abstract class OrleansBaseRateLimitingMiddleware
 
         AddLimiters(httpContext, holder);
 
-        // throw too many requests if any of the limiters is null code 429
         var error = await holder.AcquireAsync();
         if (error is null)
         {
@@ -46,18 +44,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
         }
         else
         {
-            if (httpContext.Response.HasStarted)
-                return;
-
-            httpContext.Response.Clear();
-            httpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
-            await httpContext.Response.WriteAsJsonAsync(new
-            {
-                StatusCode = (int)HttpStatusCode.TooManyRequests,
-                Error = "Too many requests",
-                error.Reason,
-                RetryAfter = error.RetryAfter.ToString()
-            });
+            await RateLimitResponseWriter.WriteTooManyRequestsAsync(httpContext, error);
         }
     }
 
@@ -95,13 +82,13 @@ public abstract class OrleansBaseRateLimitingMiddleware
         var limiter = _client.GetRateLimiterByConfig(key, configurationName, _services.GetServices<RateLimiterConfig>());
 
         if (limiter is null)
-            _logger.LogError("Configuration {ConfigurationName} not found for RateLimiter", configurationName);
+            _logger.LogError(RateLimitMiddlewareConstants.ConfigurationNotFoundLogMessage, configurationName);
 
         return limiter;
     }
 
     protected static string CreateKey(params string[] parts)
     {
-        return string.Join(":", parts);
+        return string.Join(RateLimitMiddlewareConstants.KeySeparator, parts);
     }
 }

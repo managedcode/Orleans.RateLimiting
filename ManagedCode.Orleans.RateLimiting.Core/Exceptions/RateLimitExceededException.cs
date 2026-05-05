@@ -1,12 +1,13 @@
 using System;
+using ManagedCode.Orleans.RateLimiting.Core.Models;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Exceptions;
 
 public class RateLimitExceededException : Exception
 {
-    public RateLimitExceededException() : base("Rate limit exceeded")
+    public RateLimitExceededException() : base(RateLimitMetadataNames.RateLimitExceededReason)
     {
-        Reason = "Rate limit exceeded";
+        Reason = RateLimitMetadataNames.RateLimitExceededReason;
         RetryAfter = TimeSpan.Zero;
     }
 
@@ -16,9 +17,9 @@ public class RateLimitExceededException : Exception
         RetryAfter = TimeSpan.Zero;
     }
 
-    public RateLimitExceededException(TimeSpan retry) : base("Time limit exceeded")
+    public RateLimitExceededException(TimeSpan retry) : base(RateLimitMetadataNames.TimeLimitExceededReason)
     {
-        Reason = "Time limit exceeded";
+        Reason = RateLimitMetadataNames.TimeLimitExceededReason;
         RetryAfter = retry;
     }
 

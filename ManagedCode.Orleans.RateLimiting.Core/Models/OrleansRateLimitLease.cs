@@ -31,10 +31,13 @@ public class OrleansRateLimitLease : IAsyncDisposable
 
     public IGrainFactory GrainFactory { get; init; }
 
-    public string Reason => TryGetMetadata("REASON_PHRASE", out var reason) ? reason ?? string.Empty : "Rate limit exceeded";
+    public string Reason =>
+        TryGetMetadata(RateLimitMetadataNames.ReasonPhrase, out var reason) ? reason ?? string.Empty : RateLimitMetadataNames.RateLimitExceededReason;
 
     public TimeSpan RetryAfter =>
-        TryGetMetadata("RETRY_AFTER", out var reason) && TimeSpan.TryParse(reason, CultureInfo.InvariantCulture, out var retryAfter) ? retryAfter : TimeSpan.Zero;
+        TryGetMetadata(RateLimitMetadataNames.RetryAfter, out var reason) && TimeSpan.TryParse(reason, CultureInfo.InvariantCulture, out var retryAfter)
+            ? retryAfter
+            : TimeSpan.Zero;
 
     public bool IsAcquired { get; init; }
 

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Client.Extensions;
@@ -39,39 +38,31 @@ public sealed class OrleansRequestRateLimitingMiddleware
             return;
         }
 
-        if (httpContext.Response.HasStarted)
-            return;
-
-        httpContext.Response.Clear();
-        httpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
-        await httpContext.Response.WriteAsJsonAsync(new
-        {
-            StatusCode = (int)HttpStatusCode.TooManyRequests,
-            Error = "Too many requests",
-            error.Reason,
-            RetryAfter = error.RetryAfter.ToString()
-        });
+        await RateLimitResponseWriter.WriteTooManyRequestsAsync(httpContext, error);
     }
 
     private RateLimitRequestContext CreateContext(HttpContext httpContext)
     {
         var endpoint = httpContext.GetEndpoint();
         var user = httpContext.User;
-        var path = httpContext.Request.Path.Value ?? "/";
+        var path = httpContext.Request.Path.Value ?? RateLimitMiddlewareConstants.DefaultPath;
 
         return new RateLimitRequestContext
         {
-            OperationName = endpoint?.DisplayName ?? $"{httpContext.Request.Method} {path}",
+            OperationName = endpoint?.DisplayName ?? string.Concat(httpContext.Request.Method, RateLimitMiddlewareConstants.OperationNameSeparator, path),
             UserId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.Identity?.Name,
-            GroupId = user.FindFirstValue("group") ?? user.FindFirstValue("groups") ?? user.FindFirstValue(ClaimTypes.GroupSid),
-            TenantId = user.FindFirstValue("tenant_id") ?? user.FindFirstValue("tid"),
+            GroupId = user.FindFirstValue(RateLimitMiddlewareConstants.GroupClaimType)
+                      ?? user.FindFirstValue(RateLimitMiddlewareConstants.GroupsClaimType)
+                      ?? user.FindFirstValue(ClaimTypes.GroupSid),
+            TenantId = user.FindFirstValue(RateLimitMiddlewareConstants.TenantIdClaimType)
+                       ?? user.FindFirstValue(RateLimitMiddlewareConstants.ShortTenantIdClaimType),
             Role = user.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Role)?.Value,
             IpAddress = httpContext.Request.GetClientIpAddress(),
             Resource = path,
             Metadata = new Dictionary<string, string>
             {
-                ["method"] = httpContext.Request.Method,
-                ["path"] = path
+                [RateLimitMiddlewareConstants.MethodMetadataKey] = httpContext.Request.Method,
+                [RateLimitMiddlewareConstants.PathMetadataKey] = path
             },
             PolicyName = _policyName
         };

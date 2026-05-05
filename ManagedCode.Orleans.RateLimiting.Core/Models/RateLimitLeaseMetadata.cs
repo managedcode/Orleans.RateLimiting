@@ -23,7 +23,7 @@ public class RateLimitLeaseMetadata
         LeaseId = Guid.Empty;
         GrainId = grainId;
         IsAcquired = false;
-        Metadata = [new KeyValuePair<string, object?>("REASON_PHRASE", "Lease not acquired")];
+        Metadata = [new KeyValuePair<string, object?>(RateLimitMetadataNames.ReasonPhrase, RateLimitMetadataNames.LeaseNotAcquiredReason)];
     }
 
     [Id(0)]

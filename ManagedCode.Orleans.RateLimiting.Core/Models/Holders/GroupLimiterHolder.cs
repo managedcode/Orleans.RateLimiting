@@ -7,6 +7,8 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 
 public class GroupLimiterHolder : IAsyncDisposable
 {
+    private const string AlreadyAcquiredMessage = "A limiter group can only be acquired once before it is disposed.";
+
     private readonly List<LimiterEntry> _holders = [];
     private bool _acquired;
     private bool _disposed;
@@ -41,7 +43,7 @@ public class GroupLimiterHolder : IAsyncDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_acquired)
-            throw new InvalidOperationException("A limiter group can only be acquired once before it is disposed.");
+            throw new InvalidOperationException(AlreadyAcquiredMessage);
 
         for (var index = 0; index < _holders.Count; index++)
         {
