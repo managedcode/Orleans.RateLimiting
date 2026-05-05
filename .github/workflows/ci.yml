@@ -14,7 +14,6 @@ permissions:
   contents: read
 
 jobs:
-
   build-and-test:
     name: Build, Test, and Coverage
     runs-on: ubuntu-latest
@@ -69,3 +68,10 @@ jobs:
             ./artifacts/coverage/**
             ./artifacts/coverage-report/**
           retention-days: 5
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./artifacts/coverage/coverage.cobertura.xml
+          fail_ci_if_error: false
