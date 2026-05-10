@@ -1,11 +1,14 @@
+using System;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
+using ManagedCode.Orleans.RateLimiting.Server.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
 using Orleans.Concurrency;
+using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
@@ -13,13 +16,20 @@ namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 [GrainType(RateLimiterGrainTypeNames.SlidingWindowRateLimiter)]
 public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain
 {
-    public SlidingWindowRateLimiterGrain(ILogger<SlidingWindowRateLimiterGrain> logger, IOptions<SlidingWindowRateLimiterOptions> options) : base(logger, options.Value)
+    public SlidingWindowRateLimiterGrain(
+        ILogger<SlidingWindowRateLimiterGrain> logger,
+        IOptions<SlidingWindowRateLimiterOptions> options,
+        IOptions<RateLimiterPersistenceOptions> persistenceOptions,
+        [PersistentState(RateLimiterStorageNames.StateName)] IPersistentState<RateLimiterGrainState<SlidingWindowRateLimiterOptions>> state)
+        : base(logger, options.Value, state, persistenceOptions)
     {
     }
 
-    public ValueTask<bool> TryReplenishAsync()
+    protected override int PermitLimit => Options.PermitLimit;
+
+    public async ValueTask<bool> TryReplenishAsync()
     {
-        return ValueTask.FromResult(RateLimiter.TryReplenish());
+        return await TryReplenishAndPersistAsync();
     }
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(SlidingWindowRateLimiterOptions options)
@@ -41,6 +51,19 @@ public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateL
     protected override SlidingWindowRateLimiter CreateDefaultRateLimiter()
     {
         return new SlidingWindowRateLimiter(Options);
+    }
+
+    protected override bool TryReplenish()
+    {
+        return RateLimiter.TryReplenish();
+    }
+
+    protected override int GetRestoredAvailablePermits(DateTimeOffset savedAtUtc, int savedAvailablePermits, DateTimeOffset nowUtc)
+    {
+        if (Options.AutoReplenishment && nowUtc - savedAtUtc >= Options.Window)
+            return PermitLimit;
+
+        return base.GetRestoredAvailablePermits(savedAtUtc, savedAvailablePermits, nowUtc);
     }
 
     private bool CheckOptions(SlidingWindowRateLimiterOptions options)

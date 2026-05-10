@@ -2,10 +2,12 @@ using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
+using ManagedCode.Orleans.RateLimiting.Server.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
 using Orleans.Concurrency;
+using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
@@ -13,9 +15,18 @@ namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 [GrainType(RateLimiterGrainTypeNames.ConcurrencyLimiter)]
 public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain
 {
-    public ConcurrencyLimiterGrain(ILogger<ConcurrencyLimiterGrain> logger, IOptions<ConcurrencyLimiterOptions> options) : base(logger, options.Value)
+    public ConcurrencyLimiterGrain(
+        ILogger<ConcurrencyLimiterGrain> logger,
+        IOptions<ConcurrencyLimiterOptions> options,
+        IOptions<RateLimiterPersistenceOptions> persistenceOptions,
+        [PersistentState(RateLimiterStorageNames.StateName)] IPersistentState<RateLimiterGrainState<ConcurrencyLimiterOptions>> state)
+        : base(logger, options.Value, state, persistenceOptions)
     {
     }
+
+    protected override bool TracksActiveLeaseState => true;
+
+    protected override int PermitLimit => Options.PermitLimit;
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(ConcurrencyLimiterOptions options)
     {

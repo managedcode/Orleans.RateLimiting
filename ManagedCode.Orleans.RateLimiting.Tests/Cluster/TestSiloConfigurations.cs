@@ -1,15 +1,24 @@
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using ManagedCode.Orleans.RateLimiting.Server.Extensions;
+using ManagedCode.Orleans.RateLimiting.Server.Options;
+using Microsoft.Extensions.DependencyInjection;
 using Orleans.TestingHost;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 
 public class TestSiloConfigurations : ISiloConfigurator
 {
+    private const int StateFlushPeriodMilliseconds = 50;
+
     public void Configure(ISiloBuilder siloBuilder)
     {
+        siloBuilder.AddMemoryGrainStorageAsDefault();
         siloBuilder.AddOrleansRateLimiting();
+        siloBuilder.Services.Configure<RateLimiterPersistenceOptions>(options =>
+        {
+            options.StateFlushPeriod = TimeSpan.FromMilliseconds(StateFlushPeriodMilliseconds);
+        });
 
         siloBuilder.Services.AddOrleansRateLimiterOptions("ConcurrencyLimiterOptions1", new ConcurrencyLimiterOptions
         {
