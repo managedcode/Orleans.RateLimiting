@@ -14,6 +14,7 @@ The library wraps `System.Threading.RateLimiting` behind Orleans grains so the s
 
 - Fixed window, sliding window, token bucket, and concurrency limiters.
 - Distributed limiter state through Orleans grains.
+- Durable quota snapshots through Orleans grain storage, with reset support.
 - Grain method attributes for grain-call rate limiting.
 - Request orchestration for per-user, per-group, per-tenant, per-role, per-IP, per-endpoint, per-grain, and custom partitions.
 - ASP.NET Core request middleware plus controller attributes for IP, anonymous user, authorized user, and role-aware limiting.
@@ -41,10 +42,21 @@ dotnet add package ManagedCode.Orleans.RateLimiting.Client
 
 ## Silo Setup
 
-Register the Orleans rate-limiting services and any limiter defaults that should be enforced by grain call filters.
+Register the Orleans rate-limiting services, configure the package storage provider, and add any limiter defaults that should be enforced by grain call filters.
 
 ```csharp
+siloBuilder.AddAzureTableGrainStorage(
+    RateLimiterPersistenceDefaults.StorageProviderName,
+    options =>
+    {
+        options.ConfigureTableServiceClient(connectionString);
+    });
+
 siloBuilder.AddOrleansRateLimiting();
+siloBuilder.Services.Configure<RateLimiterPersistenceOptions>(options =>
+{
+    options.StateFlushPeriod = TimeSpan.FromMinutes(5);
+});
 
 siloBuilder.AddOrleansConcurrencyLimiter(options =>
 {
@@ -75,6 +87,8 @@ siloBuilder.AddOrleansTokenBucketRateLimiter(options =>
     options.ReplenishmentPeriod = TimeSpan.FromSeconds(1);
 });
 ```
+
+The storage provider name is `RateLimiterPersistenceDefaults.StorageProviderName` (`ManagedCode.Orleans.RateLimiting`). In development or tests, use the same provider name with an in-memory provider. Limiter grains flush changed quota state every five minutes by default and force a write during configuration, reset, and activation deactivation. Configure `RateLimiterPersistenceOptions.StateFlushPeriod` when tests or workloads need a different interval.
 
 ## Direct Limiter Usage
 
@@ -115,6 +129,12 @@ var limiter = clusterClient.GetFixedWindowRateLimiter(
 
 await using var lease = await limiter.AcquireAndConfigureAsync();
 lease.ThrowIfNotAcquired();
+```
+
+Reset the durable quota state through the limiter holder when an administrative workflow needs to clear the current limiter window or active concurrency leases:
+
+```csharp
+await limiter.ResetAsync();
 ```
 
 ## Request Orchestration

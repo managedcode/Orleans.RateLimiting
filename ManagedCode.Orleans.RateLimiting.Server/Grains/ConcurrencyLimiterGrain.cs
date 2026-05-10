@@ -19,7 +19,7 @@ public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, Conc
         ILogger<ConcurrencyLimiterGrain> logger,
         IOptions<ConcurrencyLimiterOptions> options,
         IOptions<RateLimiterPersistenceOptions> persistenceOptions,
-        [PersistentState(RateLimiterStorageNames.StateName)] IPersistentState<RateLimiterGrainState<ConcurrencyLimiterOptions>> state)
+        [PersistentState(RateLimiterStorageNames.StateName, RateLimiterStorageNames.StorageProviderName)] IPersistentState<RateLimiterGrainState<ConcurrencyLimiterOptions>> state)
         : base(logger, options.Value, state, persistenceOptions)
     {
     }

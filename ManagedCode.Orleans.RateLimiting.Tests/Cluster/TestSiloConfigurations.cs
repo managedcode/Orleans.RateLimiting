@@ -13,7 +13,7 @@ public class TestSiloConfigurations : ISiloConfigurator
 
     public void Configure(ISiloBuilder siloBuilder)
     {
-        siloBuilder.AddMemoryGrainStorageAsDefault();
+        siloBuilder.AddMemoryGrainStorage(RateLimiterPersistenceDefaults.StorageProviderName);
         siloBuilder.AddOrleansRateLimiting();
         siloBuilder.Services.Configure<RateLimiterPersistenceOptions>(options =>
         {

@@ -20,7 +20,7 @@ public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimit
         ILogger<TokenBucketRateLimiterGrain> logger,
         IOptions<TokenBucketRateLimiterOptions> options,
         IOptions<RateLimiterPersistenceOptions> persistenceOptions,
-        [PersistentState(RateLimiterStorageNames.StateName)] IPersistentState<RateLimiterGrainState<TokenBucketRateLimiterOptions>> state)
+        [PersistentState(RateLimiterStorageNames.StateName, RateLimiterStorageNames.StorageProviderName)] IPersistentState<RateLimiterGrainState<TokenBucketRateLimiterOptions>> state)
         : base(logger, options.Value, state, persistenceOptions)
     {
     }

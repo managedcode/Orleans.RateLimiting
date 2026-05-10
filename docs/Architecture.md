@@ -34,6 +34,7 @@ sequenceDiagram
     participant Orchestrator as Request orchestrator
     participant Client as Orleans client
     participant Grain as Rate limiter grain
+    participant Storage as Orleans storage
     participant Limiter as .NET limiter
 
     Caller->>Middleware: Request or hub invocation
@@ -43,6 +44,7 @@ sequenceDiagram
     Client->>Grain: Acquire lease
     Grain->>Limiter: Check configured limiter
     Limiter-->>Grain: Lease result
+    Grain->>Storage: Periodically persist quota snapshot
     Grain-->>Orchestrator: Allowed or rejected
     Orchestrator-->>Middleware: Group acquisition result
     Middleware-->>Caller: Continue or return 429
@@ -57,6 +59,7 @@ classDiagram
         AcquireAsync()
         GetStatisticsAsync()
         ReleaseLease()
+        ResetAsync()
     }
     class IRateLimiterGrainWithConfiguration {
         <<interface>>
@@ -98,6 +101,7 @@ classDiagram
 - Core exposes request orchestration abstractions and default implementations for user, group, tenant, role, endpoint, grain, IP, and custom partitions.
 - Client owns ASP.NET Core middleware, SignalR filters, and application/client registration helpers.
 - Server owns grain implementations, incoming grain call filters, and silo registration helpers.
+- Server persists limiter quota snapshots through Orleans grain storage using the `ManagedCode.Orleans.RateLimiting` storage provider name.
 - Tests prove behaviour through TUnit, Shouldly, TestServer, and Orleans test hosting.
 - Public grain interfaces, orchestration rules, and lease semantics are package contracts; treat breaking changes as explicit architecture work.
 
@@ -108,3 +112,5 @@ classDiagram
 - Attribute-based HTTP middleware remains available for existing controller flows, but it is no longer the only client path.
 - SignalR rate limiting is policy-driven and registered through `AddSignalR().AddOrleansRateLimiting(...)`.
 - Removed commented partitioned/replenishing grain placeholders. Real partitioning now lives at the request orchestration layer, which maps partitions to existing Orleans-backed limiter grains.
+- Limiter grains own durable quota state. They update in-memory state on acquire/release, flush dirty state to Orleans storage on a configurable timer, and force a final flush during deactivation, configuration, and reset.
+- Fixed-window, sliding-window, and token-bucket grains restore consumed quota from persisted snapshots. Concurrency grains additionally persist active lease ids and permit counts so leases acquired before deactivation can still be released after reactivation.

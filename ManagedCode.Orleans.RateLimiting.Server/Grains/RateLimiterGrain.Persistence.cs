@@ -163,6 +163,9 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
 
     private void RegisterStateFlushTimer()
     {
+        if (_stateFlushPeriod <= TimeSpan.Zero)
+            return;
+
         _stateFlushTimer = this.RegisterGrainTimer(
             FlushStateTimerAsync,
             new GrainTimerCreationOptions(_stateFlushPeriod, _stateFlushPeriod)

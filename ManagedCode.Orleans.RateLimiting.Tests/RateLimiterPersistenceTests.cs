@@ -45,6 +45,50 @@ public class RateLimiterPersistenceTests
     }
 
     [Test]
+    public async Task SlidingWindowConsumedQuotaSurvivesForcedActivationCollection()
+    {
+        var rateLimiter = _testApp.Cluster.Client.GetSlidingWindowRateLimiter($"{nameof(SlidingWindowConsumedQuotaSurvivesForcedActivationCollection)}-{Guid.NewGuid():N}");
+        await rateLimiter.Configure(new SlidingWindowRateLimiterOptions
+        {
+            AutoReplenishment = false,
+            PermitLimit = PermitLimit,
+            QueueLimit = QueueLimit,
+            SegmentsPerWindow = 2,
+            Window = FixedWindow
+        });
+
+        await using (var acquiredLease = await rateLimiter.AcquireAsync())
+            acquiredLease.IsAcquired.ShouldBeTrue();
+
+        await ForceActivationCollectionAsync();
+
+        await using var rejectedLease = await rateLimiter.AcquireAsync();
+        rejectedLease.IsAcquired.ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task TokenBucketConsumedQuotaSurvivesForcedActivationCollection()
+    {
+        var rateLimiter = _testApp.Cluster.Client.GetTokenBucketRateLimiter($"{nameof(TokenBucketConsumedQuotaSurvivesForcedActivationCollection)}-{Guid.NewGuid():N}");
+        await rateLimiter.Configure(new TokenBucketRateLimiterOptions
+        {
+            AutoReplenishment = false,
+            TokenLimit = PermitLimit,
+            TokensPerPeriod = PermitLimit,
+            QueueLimit = QueueLimit,
+            ReplenishmentPeriod = FixedWindow
+        });
+
+        await using (var acquiredLease = await rateLimiter.AcquireAsync())
+            acquiredLease.IsAcquired.ShouldBeTrue();
+
+        await ForceActivationCollectionAsync();
+
+        await using var rejectedLease = await rateLimiter.AcquireAsync();
+        rejectedLease.IsAcquired.ShouldBeFalse();
+    }
+
+    [Test]
     public async Task ConcurrencyActiveLeaseSurvivesForcedActivationCollectionUntilReleased()
     {
         var rateLimiter = _testApp.Cluster.Client.GetConcurrencyLimiter($"{nameof(ConcurrencyActiveLeaseSurvivesForcedActivationCollectionUntilReleased)}-{Guid.NewGuid():N}");

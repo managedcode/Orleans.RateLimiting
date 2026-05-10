@@ -20,7 +20,7 @@ public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimit
         ILogger<FixedWindowRateLimiterGrain> logger,
         IOptions<FixedWindowRateLimiterOptions> options,
         IOptions<RateLimiterPersistenceOptions> persistenceOptions,
-        [PersistentState(RateLimiterStorageNames.StateName)] IPersistentState<RateLimiterGrainState<FixedWindowRateLimiterOptions>> state)
+        [PersistentState(RateLimiterStorageNames.StateName, RateLimiterStorageNames.StorageProviderName)] IPersistentState<RateLimiterGrainState<FixedWindowRateLimiterOptions>> state)
         : base(logger, options.Value, state, persistenceOptions)
     {
     }

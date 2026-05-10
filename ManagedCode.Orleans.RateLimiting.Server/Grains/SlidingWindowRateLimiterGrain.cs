@@ -20,7 +20,7 @@ public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateL
         ILogger<SlidingWindowRateLimiterGrain> logger,
         IOptions<SlidingWindowRateLimiterOptions> options,
         IOptions<RateLimiterPersistenceOptions> persistenceOptions,
-        [PersistentState(RateLimiterStorageNames.StateName)] IPersistentState<RateLimiterGrainState<SlidingWindowRateLimiterOptions>> state)
+        [PersistentState(RateLimiterStorageNames.StateName, RateLimiterStorageNames.StorageProviderName)] IPersistentState<RateLimiterGrainState<SlidingWindowRateLimiterOptions>> state)
         : base(logger, options.Value, state, persistenceOptions)
     {
     }
