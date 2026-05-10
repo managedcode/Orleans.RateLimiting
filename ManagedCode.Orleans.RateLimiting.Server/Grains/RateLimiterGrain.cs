@@ -116,11 +116,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         try
         {
             await WaitForActiveAcquiresAsync();
-            DisposeRateLimiter();
-            _options = options;
-            RateLimiter = CreateDefaultRateLimiter();
-            await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true);
-            _logger.LogInformation(RateLimiterLogMessages.ConfiguredLimiter, typeof(TLimiter).Name, this.GetPrimaryKeyString());
+            await ConfigureLimiterAsync(options);
         }
         finally
         {
@@ -192,6 +188,33 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         return ClampAvailablePermits(savedAvailablePermits);
     }
 
+    protected async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(TOptions options, Func<TOptions, bool> optionsChanged)
+    {
+        return await AcquireAndCheckConfigurationAsync(permitCount: 1, options, optionsChanged);
+    }
+
+    protected async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TOptions options, Func<TOptions, bool> optionsChanged)
+    {
+        await EnterAcquireAsync(options, optionsChanged);
+        try
+        {
+            return await AcquireAndPersistAsync(permitCount);
+        }
+        finally
+        {
+            ExitAcquire();
+        }
+    }
+
+    private async Task ConfigureLimiterAsync(TOptions options)
+    {
+        DisposeRateLimiter();
+        _options = options;
+        RateLimiter = CreateDefaultRateLimiter();
+        await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true);
+        _logger.LogInformation(RateLimiterLogMessages.ConfiguredLimiter, typeof(TLimiter).Name, this.GetPrimaryKeyString());
+    }
+
     private async Task<RateLimitLeaseMetadata> AcquireAndPersistAsync(int permitCount)
     {
         var leaseId = Guid.NewGuid();
@@ -252,6 +275,28 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         await _configurationLock.WaitAsync();
         try
         {
+            lock (_limiterLifetimeSync)
+            {
+                _activeAcquireCount++;
+            }
+        }
+        finally
+        {
+            _configurationLock.Release();
+        }
+    }
+
+    private async Task EnterAcquireAsync(TOptions options, Func<TOptions, bool> optionsChanged)
+    {
+        await _configurationLock.WaitAsync();
+        try
+        {
+            if (optionsChanged(options))
+            {
+                await WaitForActiveAcquiresAsync();
+                await ConfigureLimiterAsync(options);
+            }
+
             lock (_limiterLifetimeSync)
             {
                 _activeAcquireCount++;

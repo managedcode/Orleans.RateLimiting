@@ -7,12 +7,10 @@ using ManagedCode.Orleans.RateLimiting.Server.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
-using Orleans.Concurrency;
 using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-[Reentrant]
 [GrainType(RateLimiterGrainTypeNames.SlidingWindowRateLimiter)]
 public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain
 {
@@ -34,18 +32,12 @@ public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateL
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(SlidingWindowRateLimiterOptions options)
     {
-        if (CheckOptions(options))
-            await ConfigureAsync(options);
-
-        return await AcquireAsync();
+        return await AcquireAndCheckConfigurationAsync(options, CheckOptions);
     }
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, SlidingWindowRateLimiterOptions options)
     {
-        if (CheckOptions(options))
-            await ConfigureAsync(options);
-
-        return await AcquireAsync(permitCount);
+        return await AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions);
     }
 
     protected override SlidingWindowRateLimiter CreateDefaultRateLimiter()

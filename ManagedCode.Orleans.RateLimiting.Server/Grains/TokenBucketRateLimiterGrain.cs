@@ -7,12 +7,10 @@ using ManagedCode.Orleans.RateLimiting.Server.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
-using Orleans.Concurrency;
 using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-[Reentrant]
 [GrainType(RateLimiterGrainTypeNames.TokenBucketRateLimiter)]
 public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimiter, TokenBucketRateLimiterOptions>, ITokenBucketRateLimiterGrain
 {
@@ -34,18 +32,12 @@ public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimit
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(TokenBucketRateLimiterOptions options)
     {
-        if (CheckOptions(options))
-            await ConfigureAsync(options);
-
-        return await AcquireAsync();
+        return await AcquireAndCheckConfigurationAsync(options, CheckOptions);
     }
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TokenBucketRateLimiterOptions options)
     {
-        if (CheckOptions(options))
-            await ConfigureAsync(options);
-
-        return await AcquireAsync(permitCount);
+        return await AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions);
     }
 
     protected override TokenBucketRateLimiter CreateDefaultRateLimiter()

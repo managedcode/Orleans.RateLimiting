@@ -6,12 +6,10 @@ using ManagedCode.Orleans.RateLimiting.Server.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
-using Orleans.Concurrency;
 using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-[Reentrant]
 [GrainType(RateLimiterGrainTypeNames.ConcurrencyLimiter)]
 public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain
 {
@@ -30,18 +28,12 @@ public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, Conc
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(ConcurrencyLimiterOptions options)
     {
-        if (CheckOptions(options))
-            await ConfigureAsync(options);
-
-        return await AcquireAsync();
+        return await AcquireAndCheckConfigurationAsync(options, CheckOptions);
     }
 
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, ConcurrencyLimiterOptions options)
     {
-        if (CheckOptions(options))
-            await ConfigureAsync(options);
-
-        return await AcquireAsync(permitCount);
+        return await AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions);
     }
 
     protected override ConcurrencyLimiter CreateDefaultRateLimiter()
