@@ -22,6 +22,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
     private const int SingleSemaphoreSlot = 1;
 
     private readonly SemaphoreSlim _configurationLock = new(SingleSemaphoreSlot, SingleSemaphoreSlot);
+    private readonly TOptions _defaultOptions;
     private readonly ILogger _logger;
     private readonly object _limiterLifetimeSync = new();
     private readonly ConcurrentDictionary<Guid, RateLimitLease> _rateLimitLeases = new();
@@ -31,6 +32,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
     private int _activeAcquireCount;
     private bool _configurationLockDisposed;
     private TaskCompletionSource? _noActiveAcquires;
+    private bool _stateDeleted;
     private bool _stateDirty;
     private IGrainTimer? _stateFlushTimer;
     private bool _stateLockDisposed;
@@ -43,6 +45,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         IOptions<RateLimiterPersistenceOptions> persistenceOptions)
     {
         _logger = logger;
+        _defaultOptions = options;
         _options = options;
         _state = state;
         _stateFlushPeriod = persistenceOptions.Value.StateFlushPeriod;
@@ -145,13 +148,32 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         }
     }
 
+    public async ValueTask DeleteStateAsync()
+    {
+        await _configurationLock.WaitAsync();
+        try
+        {
+            await WaitForActiveAcquiresAsync();
+            DisposeRateLimiter();
+            _options = _defaultOptions;
+            await ClearStoredStateAsync();
+            RateLimiter = CreateDefaultRateLimiter();
+        }
+        finally
+        {
+            _configurationLock.Release();
+        }
+    }
+
     public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
     {
         await _configurationLock.WaitAsync(cancellationToken);
         try
         {
             await WaitForActiveAcquiresAsync(cancellationToken);
-            await MutateStateAsync(CaptureRuntimeSnapshot, flushImmediately: true);
+
+            if (!_stateDeleted || _stateDirty)
+                await MutateStateAsync(CaptureRuntimeSnapshot, flushImmediately: true);
         }
         finally
         {

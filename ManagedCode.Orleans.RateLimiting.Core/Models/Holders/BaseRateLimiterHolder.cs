@@ -55,6 +55,11 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
         return _grain.ResetAsync();
     }
 
+    public ValueTask DeleteStateAsync()
+    {
+        return _grain.DeleteStateAsync();
+    }
+
     public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(TOption? options)
     {
         if (options is null && _option is null)

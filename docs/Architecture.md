@@ -113,4 +113,5 @@ classDiagram
 - SignalR rate limiting is policy-driven and registered through `AddSignalR().AddOrleansRateLimiting(...)`.
 - Removed commented partitioned/replenishing grain placeholders. Real partitioning now lives at the request orchestration layer, which maps partitions to existing Orleans-backed limiter grains.
 - Limiter grains own durable quota state. They update in-memory state on acquire/release, flush dirty state to Orleans storage on a configurable timer, and force a final flush during deactivation, configuration, and reset.
+- `ResetAsync()` clears quota while keeping configuration. `DeleteStateAsync()` clears Orleans persistent state for limiter keys that are no longer needed and returns the activation to silo defaults.
 - Fixed-window, sliding-window, and token-bucket grains restore consumed quota from persisted snapshots. Concurrency grains additionally persist active lease ids and permit counts so leases acquired before deactivation can still be released after reactivation.

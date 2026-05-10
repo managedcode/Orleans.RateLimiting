@@ -9,4 +9,5 @@ public interface ILimiterHolder
     Task<OrleansRateLimitLease> AcquireAndConfigureAsync(int permitCount = 1);
     ValueTask<RateLimiterStatistics?> GetStatisticsAsync();
     ValueTask ResetAsync();
+    ValueTask DeleteStateAsync();
 }

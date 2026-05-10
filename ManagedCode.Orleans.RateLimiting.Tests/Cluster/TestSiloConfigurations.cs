@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
+using ManagedCode.Orleans.RateLimiting.Server;
 using ManagedCode.Orleans.RateLimiting.Server.Extensions;
 using ManagedCode.Orleans.RateLimiting.Server.Options;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +14,7 @@ public class TestSiloConfigurations : ISiloConfigurator
 
     public void Configure(ISiloBuilder siloBuilder)
     {
-        siloBuilder.AddMemoryGrainStorage(RateLimiterPersistenceDefaults.StorageProviderName);
+        siloBuilder.AddMemoryGrainStorage(RateLimiterStorageNames.StorageProviderName);
         siloBuilder.AddOrleansRateLimiting();
         siloBuilder.Services.Configure<RateLimiterPersistenceOptions>(options =>
         {

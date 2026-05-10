@@ -19,4 +19,5 @@ public interface IRateLimiterGrain : IGrainWithStringKey
     ValueTask ReleaseLease(Guid leaseId);
 
     ValueTask ResetAsync();
+    ValueTask DeleteStateAsync();
 }

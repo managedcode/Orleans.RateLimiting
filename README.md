@@ -14,7 +14,7 @@ The library wraps `System.Threading.RateLimiting` behind Orleans grains so the s
 
 - Fixed window, sliding window, token bucket, and concurrency limiters.
 - Distributed limiter state through Orleans grains.
-- Durable quota snapshots through Orleans grain storage, with reset support.
+- Durable quota snapshots through Orleans grain storage, with reset and state deletion support.
 - Grain method attributes for grain-call rate limiting.
 - Request orchestration for per-user, per-group, per-tenant, per-role, per-IP, per-endpoint, per-grain, and custom partitions.
 - ASP.NET Core request middleware plus controller attributes for IP, anonymous user, authorized user, and role-aware limiting.
@@ -45,11 +45,16 @@ dotnet add package ManagedCode.Orleans.RateLimiting.Client
 Register the Orleans rate-limiting services, configure the package storage provider, and add any limiter defaults that should be enforced by grain call filters.
 
 ```csharp
+using ManagedCode.Orleans.RateLimiting.Server;
+using ManagedCode.Orleans.RateLimiting.Server.Extensions;
+using ManagedCode.Orleans.RateLimiting.Server.Options;
+
 siloBuilder.AddAzureTableGrainStorage(
-    RateLimiterPersistenceDefaults.StorageProviderName,
+    RateLimiterStorageNames.StorageProviderName,
     options =>
     {
         options.ConfigureTableServiceClient(connectionString);
+        options.DeleteStateOnClear = true;
     });
 
 siloBuilder.AddOrleansRateLimiting();
@@ -88,7 +93,49 @@ siloBuilder.AddOrleansTokenBucketRateLimiter(options =>
 });
 ```
 
-The storage provider name is `RateLimiterPersistenceDefaults.StorageProviderName` (`ManagedCode.Orleans.RateLimiting`). In development or tests, use the same provider name with an in-memory provider. Limiter grains flush changed quota state every five minutes by default and force a write during configuration, reset, and activation deactivation. Configure `RateLimiterPersistenceOptions.StateFlushPeriod` when tests or workloads need a different interval.
+## Durable State Storage
+
+Rate limiter grains persist their configuration and quota snapshot through Orleans grain storage. Register the storage provider before `AddOrleansRateLimiting()` and always use `RateLimiterStorageNames.StorageProviderName` from the `ManagedCode.Orleans.RateLimiting.Server` namespace:
+
+```csharp
+siloBuilder.AddAzureTableGrainStorage(
+    RateLimiterStorageNames.StorageProviderName,
+    options =>
+    {
+        options.ConfigureTableServiceClient(connectionString);
+        options.DeleteStateOnClear = true;
+    });
+```
+
+For local development or tests, use the same provider name with an in-memory provider:
+
+```csharp
+siloBuilder.AddMemoryGrainStorage(RateLimiterStorageNames.StorageProviderName);
+```
+
+`RateLimiterPersistenceDefaults.StorageProviderName` remains available as a compatibility alias, but new host setup should use `RateLimiterStorageNames.StorageProviderName`.
+
+Limiter grains update in-memory state on acquire/release and flush changed state to Orleans storage every five minutes by default. They also force a write during configuration, reset, and activation deactivation. Configure the flush interval when tests or workloads need a different value:
+
+```csharp
+siloBuilder.Services.Configure<RateLimiterPersistenceOptions>(options =>
+{
+    options.StateFlushPeriod = TimeSpan.FromSeconds(30);
+});
+```
+
+State cleanup has two different operations:
+
+```csharp
+var limiter = clusterClient.GetFixedWindowRateLimiter("tenant:api");
+
+await limiter.ResetAsync();
+await limiter.DeleteStateAsync();
+```
+
+`ResetAsync()` clears the current quota window or active concurrency leases while keeping the limiter configuration in storage. Use it for admin reset flows where the limiter still exists.
+
+`DeleteStateAsync()` clears the Orleans persistent state record through `IPersistentState.ClearStateAsync()`. It removes the stored limiter configuration, quota snapshot, counters, and active lease state, then returns the in-memory activation to the silo defaults. Use it when the limiter key is no longer needed. Physical deletion is provider-defined; Azure Table and Blob storage delete the row/blob when their `DeleteStateOnClear` option is enabled.
 
 ## Direct Limiter Usage
 
@@ -135,6 +182,12 @@ Reset the durable quota state through the limiter holder when an administrative 
 
 ```csharp
 await limiter.ResetAsync();
+```
+
+Delete the durable state when the limiter key should be removed completely and future calls should start from silo defaults:
+
+```csharp
+await limiter.DeleteStateAsync();
 ```
 
 ## Request Orchestration

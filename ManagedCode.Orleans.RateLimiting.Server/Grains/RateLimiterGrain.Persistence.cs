@@ -30,6 +30,22 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         state.UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 
+    private async Task ClearStoredStateAsync()
+    {
+        await _stateLock.WaitAsync();
+        try
+        {
+            _stateDirty = false;
+            _stateDeleted = true;
+            _state.State = new RateLimiterGrainState<TOptions>();
+            await _state.ClearStateAsync();
+        }
+        finally
+        {
+            _stateLock.Release();
+        }
+    }
+
     private void DisposeStateFlushTimer()
     {
         _stateFlushTimer?.Dispose();
@@ -150,6 +166,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         try
         {
             update(_state.State);
+            _stateDeleted = false;
             _stateDirty = true;
 
             if (flushImmediately)
