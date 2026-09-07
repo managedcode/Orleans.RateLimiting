@@ -181,7 +181,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         return ClampAvailablePermits((int)(availablePermits ?? PermitLimit));
     }
 
-    private async Task MutateStateAsync(Action<RateLimiterGrainState<TOptions>> update, bool flushImmediately = false, CancellationToken cancellationToken = default, bool cancelBeforeMutation = false)
+    private async Task MutateStateAsync(Action<RateLimiterGrainState<TOptions>> update, bool flushImmediately = false, bool cancelBeforeMutation = false, CancellationToken cancellationToken = default)
     {
         // Runtime mutation and its dirty snapshot must remain atomic on cancellation.
         await _stateLock.WaitAsync(cancelBeforeMutation ? cancellationToken : CancellationToken.None);

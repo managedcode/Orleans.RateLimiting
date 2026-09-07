@@ -179,7 +179,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
             await WaitForActiveAcquiresAsync(cancellationToken);
 
             if (!_stateDeleted || _stateDirty)
-                await MutateStateAsync(CaptureRuntimeSnapshot, flushImmediately: true, cancellationToken, cancelBeforeMutation: true);
+                await MutateStateAsync(CaptureRuntimeSnapshot, flushImmediately: true, cancelBeforeMutation: true, cancellationToken: cancellationToken);
         }
         finally
         {

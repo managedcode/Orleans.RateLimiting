@@ -19,7 +19,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         DisposeRateLimiter();
         _options = options;
         RateLimiter = replacement;
-        await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true, cancellationToken);
+        await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true, cancellationToken: cancellationToken);
         _logger.LogInformation(RateLimiterLogMessages.ConfiguredLimiter, typeof(TLimiter).Name, this.GetPrimaryKeyString());
     }
 
