@@ -115,3 +115,19 @@ classDiagram
 - Limiter grains own durable quota state. They update in-memory state on acquire/release, flush dirty state to Orleans storage on a configurable timer, and force a final flush during deactivation, configuration, and reset.
 - `ResetAsync()` clears quota while keeping configuration. `DeleteStateAsync()` clears Orleans persistent state for limiter keys that are no longer needed and returns the activation to silo defaults.
 - Fixed-window, sliding-window, and token-bucket grains restore consumed quota from persisted snapshots. Concurrency grains additionally persist active lease ids and permit counts so leases acquired before deactivation can still be released after reactivation.
+
+## Client IP trust boundary
+
+```mermaid
+flowchart LR
+    Request["Request with untrusted headers"] --> Proxy["ASP.NET Core ForwardedHeadersMiddleware"]
+    Trust["Known proxies/networks + bounded ForwardLimit"] --> Proxy
+    Proxy --> Connection["Connection.RemoteIpAddress"]
+    Connection --> Resolver["Normalize IPv4; shared fallback if absent"]
+    Resolver --> HTTP["HTTP rate-limit partition"]
+    Resolver --> Hub["SignalR rate-limit partition"]
+```
+
+Built-in integrations never resolve IPs from raw request headers. The host owns
+proxy trust configuration and middleware ordering. Missing attribute configurations
+fail before endpoint execution. See [security review and migration](SecurityReview-10.2.0.md).

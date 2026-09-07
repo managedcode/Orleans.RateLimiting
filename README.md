@@ -316,6 +316,50 @@ app.UseOrleansUserRateLimiting();
 app.MapControllers();
 ```
 
+### Client IPs and trusted proxies (10.2.0)
+
+HTTP middleware and SignalR use `HttpContext.Connection.RemoteIpAddress`. Raw
+`X-Forwarded-For`, `X-Real-IP`, and `REMOTE_ADDR` headers do not select rate-limit
+partitions. IPv4-mapped IPv6 addresses are normalized to IPv4; requests without a
+connection address share the `unknown-ip` partition instead of skipping IP limits.
+
+Behind a reverse proxy, configure ASP.NET Core forwarded headers with your actual
+trusted proxy addresses, and run it **before** authentication and rate limiting:
+
+```csharp
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
+
+const string trustedProxyAddress = "10.0.0.10"; // Replace with your proxy's address.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    options.KnownProxies.Add(IPAddress.Parse(trustedProxyAddress));
+});
+
+// After building the app, before the pipeline shown above:
+app.UseForwardedHeaders();
+```
+
+Keep a bounded `ForwardLimit` matching your proxy chain and restrict trusted
+proxies/networks. Do not clear both trust lists or trust arbitrary clients. See
+[Microsoft's proxy configuration guide](https://learn.microsoft.com/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-10.0).
+The legacy `GetClientIpAddress(headers)` overload explicitly trusts the supplied
+headers and is for callers that independently enforce this boundary; built-in
+middleware never calls it.
+
+Attribute middleware now throws `RateLimitConfigurationNotFoundException` when a
+referenced configuration is missing, before running the protected endpoint.
+Attribute keys also include configuration identity so stacked policies cannot reset
+each other. These key corrections start new counters during upgrade; deploy all
+application nodes consistently.
+Use stable authenticated identifiers for user/tenant/custom policies, mark required
+partitions `required: true`, and combine them with an IP or shared limit where
+anonymous requests must also be limited. Apply authentication before claim-based
+rules. Orleans cluster access, configuration/reset/delete methods, and lease IDs
+are trusted application capabilities; do not expose them directly to HTTP clients.
+See [the 10.2.0 security review](docs/SecurityReview-10.2.0.md) for scope and verification.
+
 Apply HTTP limiter attributes to controllers or actions.
 
 ```csharp

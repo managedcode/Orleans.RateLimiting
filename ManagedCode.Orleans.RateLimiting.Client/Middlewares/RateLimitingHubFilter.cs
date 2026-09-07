@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Client.Options;
+using ManagedCode.Orleans.RateLimiting.Client.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Exceptions;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
@@ -70,7 +71,7 @@ public class RateLimitingHubFilter : IHubFilter
             TenantId = user?.FindFirstValue(RateLimitMiddlewareConstants.TenantIdClaimType)
                        ?? user?.FindFirstValue(RateLimitMiddlewareConstants.ShortTenantIdClaimType),
             Role = user?.FindFirstValue(ClaimTypes.Role),
-            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
+            IpAddress = httpContext?.Request.GetClientIpAddress(),
             Resource = string.Concat(
                 invocationContext.Hub.GetType().FullName,
                 RateLimitMiddlewareConstants.ResourceSeparator,

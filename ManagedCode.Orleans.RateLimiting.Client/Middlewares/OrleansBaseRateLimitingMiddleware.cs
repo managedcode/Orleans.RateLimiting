@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Client.Attributes;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
+using ManagedCode.Orleans.RateLimiting.Core.Exceptions;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
@@ -80,10 +81,14 @@ public abstract class OrleansBaseRateLimitingMiddleware
 
     protected ILimiterHolder? TryGetLimiterHolder(string key, string configurationName)
     {
-        var limiter = _client.GetRateLimiterByConfig(key, configurationName, _services.GetServices<RateLimiterConfig>());
+        var partitionKey = CreateKey(configurationName.ToUpperInvariant(), key);
+        var limiter = _client.GetRateLimiterByConfig(partitionKey, configurationName, _services.GetServices<RateLimiterConfig>());
 
         if (limiter is null)
+        {
             _logger.LogError(RateLimitMiddlewareConstants.ConfigurationNotFoundLogMessage, configurationName);
+            throw new RateLimitConfigurationNotFoundException(configurationName);
+        }
 
         return limiter;
     }

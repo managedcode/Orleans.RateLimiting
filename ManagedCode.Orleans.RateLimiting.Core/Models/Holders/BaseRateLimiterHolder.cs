@@ -86,7 +86,7 @@ public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWit
             options = _option;
 
         if (options is null)
-            return await AcquireAsync();
+            return await AcquireAsync(permitCount);
 
         try
         {
