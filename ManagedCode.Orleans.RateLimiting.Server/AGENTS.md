@@ -36,6 +36,8 @@ Implements Orleans grains, grain call filters, and silo registration helpers for
 
 ## Protected Areas
 
+- `OrleansContracts.txt` records the published RPC identities; regenerate with the root command, review every diff, and retain retired history.
+
 - Grain state and limiter lifecycle.
 - Incoming grain call filter ordering and key selection.
 - Silo builder extension defaults.

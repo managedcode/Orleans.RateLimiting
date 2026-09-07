@@ -39,6 +39,9 @@ jobs:
       - name: Analyze
         run: dotnet build ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-restore -p:RunAnalyzers=true
 
+      - name: Validate package compatibility
+        run: dotnet pack ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build
+
       - name: Verify formatting
         run: dotnet format ManagedCode.Orleans.RateLimiting.sln --verify-no-changes
 

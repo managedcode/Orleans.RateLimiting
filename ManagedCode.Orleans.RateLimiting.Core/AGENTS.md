@@ -37,6 +37,8 @@ Defines shared Orleans rate-limiter contracts, attributes, option models, lease 
 
 ## Protected Areas
 
+- `OrleansContracts.txt` records the published RPC identities; regenerate with the root command, review every diff, and retain retired history.
+
 - Grain interface signatures.
 - Attribute constructor behaviour and key semantics.
 - Orleans surrogate/converter pairs.

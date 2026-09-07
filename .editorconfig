@@ -1,0 +1,5 @@
+root = true
+
+[*.cs]
+# RPC identity/signature drift must be reviewed before clients and silos diverge.
+dotnet_analyzer_diagnostic.category-Versioning.severity = error

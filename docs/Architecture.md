@@ -150,3 +150,11 @@ fail before endpoint execution. See [security review and migration](SecurityRevi
 - Configuration replacement validates a candidate limiter and requested permit count
   before disposing the current runtime limiter. Invalid input preserves its options,
   quota, and active leases; the existing synchronous subclass factory remains supported.
+
+## Platform modernization
+
+Core and Server keep generated RPC identity manifests, checked by Orleans 10.3.1
+Versioning analyzers as build errors. No RPC identities change when enabling this
+guard. Packing also compares public .NET APIs against published 10.1.0, and CI
+runs this validation before tests. See the [current modernization review](ModernizationReview-2026-09.md) for
+native cancellation, test-clock isolation, persistence, and observability priorities.

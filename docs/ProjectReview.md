@@ -1,6 +1,13 @@
 # Project Review
 
-Date: 2026-05-05
+Current review: [September 2026 .NET/Orleans modernization](ModernizationReview-2026-09.md).
+Security changes and verification: [10.2.0 security review](SecurityReview-10.2.0.md).
+
+The May notes below are historical. Persistent quota snapshots and named policies
+have since been implemented; they are not outstanding missing features. Use the
+current architecture and modernization review for present decisions.
+
+## Historical review — 2026-05-05
 
 ## Findings
 
