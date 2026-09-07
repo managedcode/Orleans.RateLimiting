@@ -16,6 +16,7 @@ public class TestSiloConfigurations : ISiloConfigurator
     {
         siloBuilder.AddMemoryGrainStorage(RateLimiterStorageNames.StorageProviderName);
         siloBuilder.AddOrleansRateLimiting();
+        SecurityGrainOptions.Configure(siloBuilder.Services);
         siloBuilder.Services.Configure<RateLimiterPersistenceOptions>(options =>
         {
             options.StateFlushPeriod = TimeSpan.FromMilliseconds(StateFlushPeriodMilliseconds);

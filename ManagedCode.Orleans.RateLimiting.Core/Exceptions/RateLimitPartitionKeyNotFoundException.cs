@@ -1,10 +1,14 @@
 using System;
+using Orleans;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Exceptions;
 
+[GenerateSerializer]
 public sealed class RateLimitPartitionKeyNotFoundException : Exception
 {
+    private const int KindFieldId = 0;
+
     public RateLimitPartitionKeyNotFoundException()
     {
     }
@@ -15,5 +19,6 @@ public sealed class RateLimitPartitionKeyNotFoundException : Exception
         Kind = kind;
     }
 
+    [Id(KindFieldId)]
     public RateLimitPartitionKind? Kind { get; }
 }

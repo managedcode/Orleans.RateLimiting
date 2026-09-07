@@ -114,3 +114,59 @@ also reads the live connection state to satisfy CA1822 while remaining an instan
 hub method. The complete deterministic-build coverage run then passed all 89
 tests and measured the same 92.17% line coverage. No remaining local verification
 failures.
+
+## Follow-up review: grain policies and lease ownership
+
+Baseline: `152ba74`. The first pass added 17 security cases in four files. This
+follow-up adds 22 cases in three further test classes, including real Orleans
+calls and deterministic coordination of real concurrency leases. Package version
+remains 10.2.0 because this release branch has not been published.
+
+| ID | Confirmed issue | Fix and regression evidence |
+| --- | --- | --- |
+| SEC-06 | Grain call filters used the same limiter identity for different named or inline configurations. Alternating protected operations reset time quotas or released an in-flight concurrency permit. | Named keys include the normalized configuration name. Inline keys encode all relevant options, while identical inline options still share quota. Tests cover all four limiter kinds, including nested protected calls while a concurrency permit remains held. |
+| SEC-07 | An explicit key partition without a key, or an explicitly empty configuration name, silently disabled grain call limiting. | Invalid keys throw before invoking application code; empty named configurations throw the existing configuration exception. Tests exercise all four limiter kinds. This closes misconfiguration-driven bypasses; these attributes are host-owned metadata. |
+| SEC-08 | Rate-limit attributes on grain interface methods were ignored. | Resolve implementation-method attributes first, then interface-method attributes, then implementation-class attributes. Actual interface-declared calls are limited for all four algorithms. |
+| SEC-09 | Overlapping group acquisition could overwrite a lease; disposal could complete before a pending lease arrived. An acquisition exception retained earlier permits until a later disposal. | Reserve group ownership before awaiting, disallow mutation during acquisition/ownership, roll back partial acquisitions on exceptions, and let every disposal caller await the same cleanup. Six lifecycle tests exercise real concurrency quotas using a gated response wrapper; no limiter outcomes are mocked. Rejected groups remain retryable after rollback. This is availability hardening for callers sharing or concurrently disposing groups, rather than a standalone anonymous HTTP exploit. |
+| SEC-10 | Library exceptions lacked generated Orleans codecs. Rejected grain calls surfaced `CodecNotFoundException` instead of their intended exception and retry metadata. | Generate serializers with explicit member IDs for the three exception types. Round-trip tests serialize them polymorphically as `Exception` and assert retained reason, retry interval, configuration name, and partition kind. This repairs the rejection contract without relaxing admission. |
+
+```mermaid
+flowchart LR
+    Metadata["Implementation method → interface method → class"] --> Key["Validate key and named configuration"]
+    Key --> Policy["Partition + named configuration or inline options"]
+    Policy --> Acquire["Acquire group; reserve lifecycle ownership"]
+    Acquire -->|"Reject or exception"| Rollback["Release previous permits"]
+    Acquire -->|"Success"| Work["Protected work"]
+    Acquire -->|"Concurrent disposal"| Wait["Wait for pending acquisition"]
+    Work --> Release["Release owned permits"]
+    Wait --> Release
+```
+
+Migration: named and inline grain-attribute keys now start fresh counters, just
+as the HTTP key correction did. Upgrade clients and silos consistently. Default
+silo-option keys and externally implemented filter option types retain their
+existing key behavior. No grain method signatures, runtime dependencies, or
+persistence layouts changed. The serializers add previously missing wire support;
+all communicating nodes should run the updated library to preserve typed errors.
+
+Scope remains source review and local integration verification. Proxy trust,
+authentication, high-cardinality custom keys, cluster administration, and abrupt
+crash durability retain the boundaries described above. Configuration/update APIs
+are trusted application capabilities. No claim is made of an exhaustive security
+proof or production penetration test.
+
+Follow-up verification:
+
+- All 39 focused security cases passed; 22 were added in this follow-up.
+- The full suite passed all 111 tests, with zero failures and zero skipped tests.
+- Coverlet line coverage is 93.12% overall (Core 93.35%, Client 93.75%, Server
+  92.44%). Policy-key construction and the three exception types have 100% line
+  coverage; the changed filter and group holder meet the 90% critical-contract
+  target. No thresholds or exclusions were weakened.
+- Release build, analyzer build, formatting verification, coverage report, and
+  packaging all passed. Build and analyzer output contain zero warnings/errors.
+- NuGet audit reported no known vulnerable direct or transitive packages.
+- Regression controls ran the new tests against the previous implementations:
+  they reproduced policy bypasses, ignored metadata, lease leaks, and missing
+  exception codecs before applying the fixes. The retry-after-rejection test also
+  preserves an existing supported behavior.

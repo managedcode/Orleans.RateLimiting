@@ -269,6 +269,21 @@ public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimite
 }
 ```
 
+### Grain attribute policy safety (10.2.0)
+
+Grain filters honor attributes on implementation methods, then interface methods,
+then the implementation class. Explicit key partitions require a non-empty key;
+an empty or missing named configuration fails before protected work executes.
+Different named policies and different inline option sets use separate limiter
+identities, preventing one operation from resetting another operation's quota.
+Identical inline options retain shared quota for the selected key. These changes
+start new counters for named/inline policies; deploy clients and silos consistently.
+
+`GroupLimiterHolder` rejects overlapping acquisition and changes to its members
+while acquisition/lease ownership is active. It rolls back earlier permits if a
+later acquisition fails and waits for pending acquisition during disposal. Build
+a group before acquiring it and continue to use `await using` around protected work.
+
 ## ASP.NET Core Usage
 
 Register named limiter options and configure request orchestration rules.

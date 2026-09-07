@@ -1,10 +1,15 @@
 using System;
+using Orleans;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Exceptions;
 
+[GenerateSerializer]
 public class RateLimitExceededException : Exception
 {
+    private const int ReasonFieldId = 0;
+    private const int RetryAfterFieldId = 1;
+
     public RateLimitExceededException() : base(RateLimitMetadataNames.RateLimitExceededReason)
     {
         Reason = RateLimitMetadataNames.RateLimitExceededReason;
@@ -29,6 +34,8 @@ public class RateLimitExceededException : Exception
         RetryAfter = retry;
     }
 
+    [Id(ReasonFieldId)]
     public string Reason { get; set; }
+    [Id(RetryAfterFieldId)]
     public TimeSpan RetryAfter { get; set; }
 }

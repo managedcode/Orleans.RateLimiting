@@ -131,3 +131,18 @@ flowchart LR
 Built-in integrations never resolve IPs from raw request headers. The host owns
 proxy trust configuration and middleware ordering. Missing attribute configurations
 fail before endpoint execution. See [security review and migration](SecurityReview-10.2.0.md).
+
+## Grain policy and group lifecycle boundaries
+
+- Grain attributes resolve in implementation-method, interface-method, then
+  implementation-class order. Invalid explicit keys and missing named configurations
+  fail before the grain implementation runs.
+- Named policies include configuration identity in their keys. Built-in inline
+  policies include all limiter options, so different settings cannot reset each
+  other's runtime limiter; identical settings still share the selected partition.
+- A limiter group reserves acquisition ownership before awaiting a grain. Partial
+  acquisition rolls back on rejection or exception. Disposal waits for any pending
+  acquisition before releasing leases, and concurrent disposal callers await the
+  same completion. Configure group membership before acquiring.
+- Typed rate-limit exceptions have generated Orleans codecs and explicit field IDs.
+  The follow-up flow diagram and migration notes are in the [security review](SecurityReview-10.2.0.md#follow-up-review-grain-policies-and-lease-ownership).

@@ -12,6 +12,8 @@ namespace ManagedCode.Orleans.RateLimiting.Server.GrainCallFilter;
 
 public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIncomingGrainCallFilter where TAttribute : Attribute where TOptions : class
 {
+    private const string InvalidKeyMessage = "A rate limiter attribute must specify a valid key type and a non-empty explicit key.";
+
     protected BaseRateLimitingIncomingFilter(IGrainFactory grainFactory, IEnumerable<RateLimiterConfig> rateLimiterConfigs)
     {
         GrainFactory = grainFactory;
@@ -47,6 +49,9 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
             return CreateRateLimiter(context, attribute);
         }
 
+        if (context.InterfaceMethod is { } interfaceMethod && Attribute.IsDefined(interfaceMethod, typeof(TAttribute)))
+            return CreateRateLimiter(context, Attribute.GetCustomAttribute(interfaceMethod, typeof(TAttribute)));
+
         if (context.ImplementationMethod.DeclaringType != null && Attribute.IsDefined(context.ImplementationMethod.DeclaringType, typeof(TAttribute)))
         {
             var attribute = Attribute.GetCustomAttribute(context.ImplementationMethod.DeclaringType, typeof(TAttribute));
@@ -63,27 +68,24 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
 
         var limiterAttribute = (ILimiterPolicy<TOptions>)attribute;
 
-        var limiter = limiterAttribute.KeyType switch
+        var key = limiterAttribute.KeyType switch
         {
-            KeyType.Key when !string.IsNullOrWhiteSpace(limiterAttribute.Key) => GetLimiter(limiterAttribute.Key),
-            KeyType.GrainType => GetLimiter(context.ImplementationMethod.DeclaringType?.FullName ?? context.TargetContext.GrainId.ToString()),
-            KeyType.GrainId => GetLimiter(context.TargetContext.GrainId.ToString()),
-            _ => null
+            KeyType.Key when !string.IsNullOrWhiteSpace(limiterAttribute.Key) => limiterAttribute.Key,
+            KeyType.GrainType => context.ImplementationMethod.DeclaringType?.FullName ?? context.TargetContext.GrainId.ToString(),
+            KeyType.GrainId => context.TargetContext.GrainId.ToString(),
+            _ => throw new InvalidOperationException(InvalidKeyMessage)
         };
 
-        if (limiter == null)
-            return null;
-
-        if (!string.IsNullOrEmpty(limiterAttribute.ConfigurationName))
+        if (limiterAttribute.ConfigurationName is not null)
         {
             var options = RateLimiterConfigs.FirstOrDefault(f => f.NameEquals(limiterAttribute.ConfigurationName) && f.OptionsTypeIs<TOptions>());
             if (options is not null)
-                return (limiter, options.GetLimiterOptions<TOptions>()!);
+                return (GetLimiter(RateLimiterPolicyKeys.ForNamedPolicy(key, options.Name)), options.GetLimiterOptions<TOptions>()!);
 
             throw new RateLimitConfigurationNotFoundException(limiterAttribute.ConfigurationName);
         }
 
-        return (limiter, limiterAttribute.Options);
+        return (GetLimiter(RateLimiterPolicyKeys.ForInlinePolicy(key, limiterAttribute.Options)), limiterAttribute.Options);
     }
 
     protected abstract ILimiterHolderWithConfiguration<TOptions> GetLimiter(string key);
