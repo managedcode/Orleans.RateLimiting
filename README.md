@@ -459,6 +459,8 @@ use server-bounded RPCs; deploy updated silos before clients. The client supplie
 budget of 80% of the Orleans response timeout. The configured steady-state fast path
 creates no deadline timer and uses distributed cancellation only for a cancellable caller
 token. Queued/configuration waits enforce their remaining budget locally on the server.
+The bounded proxy supplies this budget without a global outgoing filter, preserving
+Orleans' direct dispatch path for release and unrelated grain calls.
 Deadlines return rejected leases; caller cancellation throws `OperationCanceledException`.
 
 Fixed-window, sliding-window and token-bucket leases omit unnecessary release RPCs and

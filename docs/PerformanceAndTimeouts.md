@@ -10,12 +10,21 @@ caller whose token cannot be cancelled. No runtime dependency is added.
 
 ## Server-enforced budgets and the fast path
 
-`AddOrleansRateLimiting` installs an outgoing filter which supplies a scalar `TimeSpan`
-budget to the bounded RPCs. It uses 80% of the explicit request response timeout or
+`AddOrleansRateLimiting` registers a timeout provider. The generated bounded grain proxy
+uses it to supply a scalar `TimeSpan` budget before dispatch. It uses 80% of the explicit request response timeout or
 hosting runtime response timeout, reserving headroom before Orleans expires the callback.
 A caller-supplied shorter budget is preserved. Client/service-collection registration
-is idempotent; co-hosted applications use one silo filter regardless of registration order.
-The filter creates neither a timer nor a linked cancellation source.
+is idempotent; co-hosted applications use one silo provider regardless of registration order.
+The provider is resolved once when the reference is constructed. No global outgoing
+filter, per-call service lookup, timer or linked cancellation source is introduced.
+
+The proxy uses Orleans' public `GenerateMethodSerializers` and `DefaultInvokableBaseType`
+extension points. This preserves the runtime's direct dispatch path for calls without
+filters, including release and unrelated grain calls. A global filter would force all
+of them through an additional invoker and asynchronous pipeline; see the
+[Orleans 10.3.1 dispatch implementation](https://github.com/dotnet/orleans/blob/v10.3.1/src/Orleans.Core/Runtime/GrainReferenceRuntime.cs).
+The proxy's non-generic forwarding overload is required by source-generator validation;
+bounded acquisition contracts themselves all return metadata through the generic overload.
 
 Holders cache their bounded grain reference. `CancellationToken.None` and overloads
 without a token use RPCs without a cancellation argument. Cancellable callers use the
@@ -136,7 +145,11 @@ These are local measurements on a shared development machine, without confidence
 or a production network/storage provider. Timing varies; RPC counts, avoided per-request
 objects, queue cleanup and quota assertions provide additional deterministic evidence.
 
-## Results
+## Initial iteration measurements
+
+The reports in this section measure `b6efd7e`, the scalar-budget implementation before
+moving budget injection out of the global filter into the bounded proxy. They document
+the reason for the final proxy change. Use the latest isolated CI run for final-code results.
 
 Medians of three repetitions on .NET 10.0.11, macOS 26.6.2, arm64 (12 logical processors).
 Baseline is `705b47d`; updated is this change. The full matrix uses the same verified
@@ -199,6 +212,13 @@ All repetitions, including unfavorable results:
 
 ## Isolated CI comparison
 
+The first [isolated run](https://github.com/managedcode/Orleans.RateLimiting/actions/runs/34155639259)
+tested `b6efd7e` on a four-CPU Ubuntu 24.04 runner with .NET 10.0.11. No-token hot-key
+throughput matched baseline (+0.3%, p99 1.316 → 1.279 ms), but the `CancellationToken.None`
+overload still lost 8.4% throughput. Real cancellable-token hot-key throughput was -2.8%.
+This remaining cost prompted replacement of the global filter with the bounded proxy.
+The full first-run data is retained in `performance/2026-09-07-first-ci-*.json`.
+
 Manually dispatch the existing `CI` workflow on the feature branch. Its performance job
 uses its own Ubuntu runner, separate from functional tests and coverage. The baseline
 is pinned in `BASELINE_REF` to the pre-change commit; update that reviewed value when
@@ -225,9 +245,9 @@ Linux runner numbers are compared within that runner, never directly to the macO
 
 - 187/187 ordinary tests pass, without skips; this follow-up adds 38 to the 149-test baseline.
   Coverage instrumentation also passes all 187 tests.
-- Total line coverage is 93.84% (Client 93.82%, Core 94.35%, Server 93.27%); the 85% gate
-  is unchanged. Changed critical files: acquisition 91.01%, deadlines 96.43%, deadline
-  value 94.44%, holder cancellation 92.00%, lease 90.48%, and all three timeout filters 100%.
+- Total line coverage is 93.78% (Client 93.77%, Core 94.24%, Server 93.25%); the 85% gate
+  is unchanged. Timeout providers have 100% coverage. Acquisition, deadline, holder
+  cancellation and lease files remain above 90%.
 - The 16 timeout storms each queue 16 requests across all four algorithms, both overload
   choices and configured/unconfigured calls. They complete in 800.9–810.0 ms against a
   one-second client response timeout with `CancelRequestOnTimeout=false`. All queues
@@ -239,4 +259,16 @@ Linux runner numbers are compared within that runner, never directly to the macO
 - Release/analyzer builds have zero warnings/errors. Ordinary and opt-in benchmark
   formatting pass. Direct/transitive NuGet vulnerability audit and actionlint pass.
 - All three 10.2.0 packages and symbols pack successfully, including public API validation
-  against published 10.1.0. No existing Orleans RPC identity is removed or changed.
+  against published 10.1.0. Published RPC identities are retained. The new bounded proxy
+  and its invoker identities are introduced together in the unpublished 10.2 release;
+  intermediate branch builds are not a rolling-upgrade compatibility baseline.
+
+### Generated-proxy coverage exception
+
+`BoundedRateLimiterGrainReference` has 80% line coverage: its required non-generic
+forwarding overload is unreachable from the registered bounded interfaces, which all
+return metadata. Every sequence point on their constructor/generic dispatch path is
+covered by real RPC tests. The forwarding line remains included in total coverage;
+there are no exclusions or weaker assertions. This narrow exception avoids adding an
+artificial public RPC solely to execute generator scaffolding. Remove the overload and
+exception when Orleans' proxy validation accepts inherited dispatch overloads.

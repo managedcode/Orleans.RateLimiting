@@ -13,7 +13,7 @@ Defines shared Orleans rate-limiter contracts, attributes, option models, lease 
 - `Models/` — rate-limit leases, config, metadata, and holder types.
 - `Surrogates/` — Orleans serialization surrogates and converters for rate limiter options/statistics.
 - `Extensions/` — shared service and grain-factory helpers.
-- `Services/RateLimiterTimeoutFilter.cs` — shared outgoing budget plumbing with a host-supplied timeout.
+- `Services/BoundedRateLimiterGrainReference.cs` and `RateLimiterTimeoutProvider.cs` — generated proxy dispatch and host-supplied acquisition budgets without a global call filter.
 
 ## Boundaries
 
@@ -41,6 +41,7 @@ Defines shared Orleans rate-limiter contracts, attributes, option models, lease 
 - `OrleansContracts.txt` records the published RPC identities; regenerate with the root command, review every diff, and retain retired history.
 
 - Grain interface signatures.
+- The bounded proxy base type participates in generated invoker identities; treat its namespace/type changes as wire-contract changes.
 - Attribute constructor behaviour and key semantics.
 - Orleans surrogate/converter pairs.
 - Lease metadata names and retry-after semantics.

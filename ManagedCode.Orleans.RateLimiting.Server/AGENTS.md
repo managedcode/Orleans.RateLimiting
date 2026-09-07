@@ -9,7 +9,8 @@ Implements Orleans grains, grain call filters, and silo registration helpers for
 ## Entry Points
 
 - `Grains/` — concrete limiter grain implementations.
-- `GrainCallFilter/` — incoming attribute enforcement and outgoing acquisition-budget filters.
+- `GrainCallFilter/` — incoming attribute enforcement.
+- `Services/` — acquisition timeout provider backed by silo messaging options.
 - `Extensions/` — silo builder registration helpers for limiter types.
 - `Properties/AssemblyInfo.cs` — Orleans application-part metadata.
 

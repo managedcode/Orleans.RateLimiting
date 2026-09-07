@@ -173,8 +173,9 @@ for the sequence diagram, deployment order, metric names and test boundaries.
 ## Acquisition budgets and lease release
 
 Client and Server registration bind hosting response-timeout options to Core's scalar
-budget filter. Co-hosted applications install one filter using silo options. Only bounded
-limiter acquisitions receive this budget; unrelated grain calls retain Orleans behavior.
+budget provider. Co-hosted applications install one provider using silo options. A generated
+bounded proxy supplies the budget before dispatch. No global outgoing filter is registered,
+so release and unrelated grain calls retain Orleans' direct dispatch path.
 Holders cache their grain references and avoid native cancellation when the caller token
 cannot be cancelled. The server creates timeout machinery for waiting/configuration paths;
 configured immediate acquisitions do not allocate deadline timers.

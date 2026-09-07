@@ -8,17 +8,18 @@ namespace ManagedCode.Orleans.RateLimiting.Tests;
 
 public class TimeoutRegistrationTests
 {
-    private const int OneFilter = 1;
-    private const string SiloFilterName = "SiloRateLimiterTimeoutFilter";
+    private const int OneProvider = 1;
+    private const string SiloProviderName = "SiloRateLimiterTimeoutProvider";
 
     [Test]
-    public void ServiceCollectionRegistrationInstallsOneDeadlineFilter()
+    public void ServiceCollectionRegistrationInstallsOneDeadlineProviderWithoutFilters()
     {
         var services = new ServiceCollection();
         services.AddOrleansRateLimiting();
         services.AddOrleansRateLimiting();
         using var provider = services.BuildServiceProvider();
-        provider.GetServices<IOutgoingGrainCallFilter>().OfType<RateLimiterTimeoutFilter>().Count().ShouldBe(OneFilter);
+        provider.GetServices<RateLimiterTimeoutProvider>().Count().ShouldBe(OneProvider);
+        provider.GetServices<IOutgoingGrainCallFilter>().ShouldBeEmpty();
     }
 
     [Test]
@@ -33,8 +34,9 @@ public class TimeoutRegistrationTests
             silo.AddOrleansRateLimiting();
             if (!clientFirst) silo.Services.AddOrleansRateLimiting();
         }).Build();
-        var filters = host.Services.GetServices<IOutgoingGrainCallFilter>().OfType<RateLimiterTimeoutFilter>().ToArray();
-        filters.Length.ShouldBe(OneFilter);
-        filters.Single().GetType().Name.ShouldBe(SiloFilterName);
+        var providers = host.Services.GetServices<RateLimiterTimeoutProvider>().ToArray();
+        providers.Length.ShouldBe(OneProvider);
+        providers.Single().GetType().Name.ShouldBe(SiloProviderName);
+        host.Services.GetServices<IOutgoingGrainCallFilter>().ShouldBeEmpty();
     }
 }

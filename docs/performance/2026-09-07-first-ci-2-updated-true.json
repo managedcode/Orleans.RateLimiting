@@ -1,0 +1,21 @@
+{
+  "FrameworkDescription": ".NET 10.0.11",
+  "OSDescription": "Ubuntu 24.04.4 LTS",
+  "ProcessArchitecture": 1,
+  "ProcessorCount": 4,
+  "Timestamp": "2026-09-07T19:35:14.1218319+00:00",
+  "Topology": "Two silos; preferred gateway 0; verified grain placement on silo 0",
+  "WarmWorkload": true,
+  "MetadataPayload": "IEAhMsVyuxo8rk6uUmeflS9SeyEgIGCKc/8pQTFyYXRlLWxpbWl0LWNvbXBhdGliaWxpdHng4CFg+BZJ50EbbGVhc2UtcGF5bG9hZODgAQMh4AEB4A==",
+  "Results": [
+    {"Algorithm": "concurrency","Scenario": "sequential","Cancellable": true,"Repetition": 0,"Operations": 32768,"OperationsPerSecond": 13901.214578746065,"P50Milliseconds": 0.0694,"P95Milliseconds": 0.0929,"P99Milliseconds": 0.1023,"ProcessAllocatedBytesPerOperation": 6038.64306640625,"ProcessRetainedBytesDelta": -231712,"Gen0Collections": 11,"Gen1Collections": 0,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "sequential","Cancellable": true,"Repetition": 1,"Operations": 32768,"OperationsPerSecond": 13679.788333997743,"P50Milliseconds": 0.0703,"P95Milliseconds": 0.0941,"P99Milliseconds": 0.106,"ProcessAllocatedBytesPerOperation": 6038.16357421875,"ProcessRetainedBytesDelta": -254880,"Gen0Collections": 11,"Gen1Collections": 0,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "sequential","Cancellable": true,"Repetition": 2,"Operations": 32768,"OperationsPerSecond": 13578.832503020823,"P50Milliseconds": 0.0709,"P95Milliseconds": 0.095,"P99Milliseconds": 0.1055,"ProcessAllocatedBytesPerOperation": 6038.692138671875,"ProcessRetainedBytesDelta": -258256,"Gen0Collections": 11,"Gen1Collections": 0,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "hot-key-16","Cancellable": true,"Repetition": 0,"Operations": 32768,"OperationsPerSecond": 25576.309942915377,"P50Milliseconds": 0.5546,"P95Milliseconds": 0.9158,"P99Milliseconds": 1.1848,"ProcessAllocatedBytesPerOperation": 8799.19384765625,"ProcessRetainedBytesDelta": -226912,"Gen0Collections": 17,"Gen1Collections": 2,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "hot-key-16","Cancellable": true,"Repetition": 1,"Operations": 32768,"OperationsPerSecond": 23488.257054200687,"P50Milliseconds": 0.5685,"P95Milliseconds": 0.9484,"P99Milliseconds": 1.3221,"ProcessAllocatedBytesPerOperation": 10900.720947265625,"ProcessRetainedBytesDelta": -250264,"Gen0Collections": 21,"Gen1Collections": 4,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "hot-key-16","Cancellable": true,"Repetition": 2,"Operations": 32768,"OperationsPerSecond": 23867.3462683745,"P50Milliseconds": 0.5566,"P95Milliseconds": 0.9248,"P99Milliseconds": 1.3265,"ProcessAllocatedBytesPerOperation": 10332.384521484375,"ProcessRetainedBytesDelta": -254880,"Gen0Collections": 20,"Gen1Collections": 4,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "partitioned-16","Cancellable": true,"Repetition": 0,"Operations": 32768,"OperationsPerSecond": 60994.54161395786,"P50Milliseconds": 0.2412,"P95Milliseconds": 0.4313,"P99Milliseconds": 0.5893,"ProcessAllocatedBytesPerOperation": 6140.165283203125,"ProcessRetainedBytesDelta": -258048,"Gen0Collections": 12,"Gen1Collections": 1,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "partitioned-16","Cancellable": true,"Repetition": 1,"Operations": 32768,"OperationsPerSecond": 60003.96998922537,"P50Milliseconds": 0.2343,"P95Milliseconds": 0.4348,"P99Milliseconds": 0.9319,"ProcessAllocatedBytesPerOperation": 6138.526611328125,"ProcessRetainedBytesDelta": -261384,"Gen0Collections": 12,"Gen1Collections": 1,"Gen2Collections": 0,"TokenCanBeCanceled": true},
+    {"Algorithm": "concurrency","Scenario": "partitioned-16","Cancellable": true,"Repetition": 2,"Operations": 32768,"OperationsPerSecond": 60743.68751703133,"P50Milliseconds": 0.2393,"P95Milliseconds": 0.4288,"P99Milliseconds": 0.6023,"ProcessAllocatedBytesPerOperation": 6140.291259765625,"ProcessRetainedBytesDelta": -257664,"Gen0Collections": 12,"Gen1Collections": 1,"Gen2Collections": 0,"TokenCanBeCanceled": true}
+  ]
+}

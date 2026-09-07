@@ -43,7 +43,7 @@ overloads now use bounded RPCs. Native token propagation is used only when the c
 token can be cancelled; other calls pass only the server wait budget. Upgrade
 all silos serving limiter keys before upgrading clients: API compatibility does not make
 an old silo implement a new capability. Register `AddOrleansRateLimiting` on the client
-and silo to install the scalar-budget filter. No cluster-wide timeout defaults change.
+and silo to register the bounded proxy's timeout provider. No cluster-wide timeout defaults change.
 See [performance and timeout validation](PerformanceAndTimeouts.md) for deadline semantics
 and the additive lease-release optimization. Cancellation remains cooperative;
 network partitions or a crash after server acquisition but before delivery are still
