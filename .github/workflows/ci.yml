@@ -14,6 +14,67 @@ permissions:
   contents: read
 
 jobs:
+  performance:
+    name: Isolated concurrency comparison
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASELINE_REF: '705b47da12e41fa22aebc3049819c9efd2b605f8'
+      TEST_PROJECT: 'ManagedCode.Orleans.RateLimiting.Tests/ManagedCode.Orleans.RateLimiting.Tests.csproj'
+      RATE_LIMIT_PERFORMANCE_ALGORITHM: 'concurrency'
+      RATE_LIMIT_PERFORMANCE_WARM_WORKLOAD: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Prepare identical baseline harness
+        run: |
+          baseline_dir="$RUNNER_TEMP/rate-baseline"
+          mkdir -p "$baseline_dir"
+          git archive "$BASELINE_REF" | tar -x -C "$baseline_dir"
+          cp -R ManagedCode.Orleans.RateLimiting.Tests/Performance "$baseline_dir/ManagedCode.Orleans.RateLimiting.Tests/Performance"
+          printf 'Baseline: %s; updated: %s. All samples run serially on this runner.\n' "$BASELINE_REF" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build baseline
+        working-directory: ${{ runner.temp }}/rate-baseline
+        run: dotnet build "$TEST_PROJECT" -c Release -p:RunPerformanceTests=true
+
+      - name: Build updated
+        run: dotnet build "$TEST_PROJECT" -c Release -p:RunPerformanceTests=true
+
+      - name: Compare warmed workloads in ABBA order
+        run: |
+          sample=0
+          for version in baseline updated updated baseline; do
+            source_dir="$GITHUB_WORKSPACE"
+            if [ "$version" = baseline ]; then source_dir="$RUNNER_TEMP/rate-baseline"; fi
+            for caller_token in false true; do
+              export RATE_LIMIT_PERFORMANCE_CALLER_TOKEN="$caller_token"
+              export RATE_LIMIT_PERFORMANCE_OUTPUT="$GITHUB_WORKSPACE/artifacts/performance/$sample-$version-$caller_token.json"
+              dotnet test --project "$source_dir/$TEST_PROJECT" -c Release --no-build -p:RunPerformanceTests=true --treenode-filter '/*/*/PerformanceBenchmarkTests/*'
+            done
+            sample=$((sample + 1))
+          done
+
+      - name: Summarize paired measurements
+        run: python3 scripts/summarize-performance.py artifacts/performance >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload every measurement
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: performance-comparison
+          path: artifacts/performance/**
+          retention-days: 30
+
   build-and-test:
     name: Build, Test, and Coverage
     runs-on: ubuntu-latest

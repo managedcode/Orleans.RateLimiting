@@ -10,6 +10,8 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models;
 [GenerateSerializer]
 public class RateLimitLeaseMetadata
 {
+    private const int ReleaseOptionalMemberId = 4;
+
     public RateLimitLeaseMetadata(Guid leaseId, GrainId grainId, RateLimitLease lease)
     {
         LeaseId = lease.IsAcquired ? leaseId : Guid.Empty;
@@ -34,6 +36,10 @@ public class RateLimitLeaseMetadata
 
     [Id(2)]
     public bool IsAcquired { get; set; }
+
+    /// <summary>False for older payloads; true only when the server has already released its native lease.</summary>
+    [Id(ReleaseOptionalMemberId)]
+    public bool IsReleaseOptional { get; set; }
 
     [Id(3)]
     public KeyValuePair<string, object?>[] Metadata { get; set; }

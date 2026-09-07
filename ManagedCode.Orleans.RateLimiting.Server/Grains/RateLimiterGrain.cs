@@ -14,7 +14,7 @@ using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDisposable, ICancellableRateLimiterGrain
+public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDisposable, ICancellableRateLimiterGrain, IBoundedRateLimiterGrain
     where TLimiter : RateLimiter
     where TOptions : class
 {
@@ -62,6 +62,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
 
     protected virtual bool TracksActiveLeaseState => false;
 
+    protected virtual bool RequiresLeaseRelease => true;
+
     protected abstract int PermitLimit { get; }
 
     protected abstract TLimiter CreateDefaultRateLimiter();
@@ -84,10 +86,10 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
 
     public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount, CancellationToken cancellationToken)
     {
-        await EnterAcquireAsync(cancellationToken);
+        await EnterAcquireAsync(default, cancellationToken);
         try
         {
-            return await AcquireAndPersistAsync(permitCount, cancellationToken);
+            return await AcquireAndPersistAsync(permitCount, default, cancellationToken);
         }
         finally
         {

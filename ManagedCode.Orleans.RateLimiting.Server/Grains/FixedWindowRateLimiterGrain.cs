@@ -13,7 +13,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.FixedWindowRateLimiter)]
-public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimiter, FixedWindowRateLimiterOptions>, IFixedWindowRateLimiterGrain, ICancellableRateLimiterGrain<FixedWindowRateLimiterOptions>
+public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimiter, FixedWindowRateLimiterOptions>, IFixedWindowRateLimiterGrain, ICancellableRateLimiterGrain<FixedWindowRateLimiterOptions>, IBoundedRateLimiterGrain<FixedWindowRateLimiterOptions>
 {
     public FixedWindowRateLimiterGrain(
         ILogger<FixedWindowRateLimiterGrain> logger,
@@ -23,6 +23,10 @@ public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimit
         : base(logger, options.Value, state, persistenceOptions)
     {
     }
+
+    protected override bool RequiresLeaseRelease => false;
+
+    protected override bool IsQueueEnabled => Options.QueueLimit != default;
 
     protected override int PermitLimit => Options.PermitLimit;
 
@@ -45,6 +49,12 @@ public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimit
     {
         return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
     }
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationWithDeadlineAsync(int permitCount, FixedWindowRateLimiterOptions options, TimeSpan timeout)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, CancellationToken.None);
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationCancellableWithDeadlineAsync(int permitCount, FixedWindowRateLimiterOptions options, TimeSpan timeout, CancellationToken cancellationToken)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, cancellationToken);
 
     protected override FixedWindowRateLimiter CreateDefaultRateLimiter()
     {

@@ -38,9 +38,14 @@ acquisitions. Legacy holders cannot interrupt their own queue; the group waits f
 result, releases any late lease, then reports cancellation. Empty groups also observe it.
 
 Deploy updated silos before updated middleware/clients start calling the new interfaces.
-Old client entry points continue using old RPCs. Upgrade all silos serving limiter keys
-before enabling new callers: API compatibility does not make an old silo implement a new
-capability. No cluster-wide timeout defaults change. Cancellation remains cooperative;
+Previous client binaries continue using supported old RPCs. All 10.2 holder acquisition
+overloads now use bounded RPCs. Native token propagation is used only when the caller
+token can be cancelled; other calls pass only the server wait budget. Upgrade
+all silos serving limiter keys before upgrading clients: API compatibility does not make
+an old silo implement a new capability. Register `AddOrleansRateLimiting` on the client
+and silo to install the scalar-budget filter. No cluster-wide timeout defaults change.
+See [performance and timeout validation](PerformanceAndTimeouts.md) for deadline semantics
+and the additive lease-release optimization. Cancellation remains cooperative;
 network partitions or a crash after server acquisition but before delivery are still
 subject to the existing lease ownership and best-effort snapshot guarantees.
 
@@ -89,7 +94,10 @@ partial files below 400 lines, with new methods below 50 lines. Extract a state/
 coordinator in a future dedicated refactor with the current race, queue and persistence
 regressions as its acceptance suite. Splitting files alone does not resolve the type limit.
 
-## Verification for 10.2.0
+## Verification of the initial cancellation slice
+
+The following records the initial 149-test slice. Current timeout/performance follow-up
+results and the complete suite are recorded in [PerformanceAndTimeouts.md](PerformanceAndTimeouts.md).
 
 - 149/149 tests passed both normally and under Coverlet, with no skips; this slice
   adds 22 tests to the previous 127-test baseline. The focused affected suite passes

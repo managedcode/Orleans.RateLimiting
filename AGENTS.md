@@ -72,6 +72,7 @@ Skill-management rules:
 - CI coverage: deterministic builds map source paths to `/_/`; generate `artifacts/coverage/SourceRootsMapping.txt` with `|<checkout-root>/=/_/` and pass `--source-mapping-file artifacts/coverage/SourceRootsMapping.txt` to the coverage command. Keep the 85% threshold and source inclusion unchanged.
 - `coverage-report`: `dotnet tool run reportgenerator -reports:"artifacts/coverage/coverage.cobertura.xml" -targetdir:"artifacts/coverage-report" -reporttypes:"HtmlSummary;MarkdownSummaryGithub"`
 - `pack`: `dotnet pack ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build`
+- `performance`: manually dispatch `ci.yml` on the working branch for an isolated baseline/updated comparison; see `docs/PerformanceAndTimeouts.md`. Functional CI runs omit benchmarks.
 
 .NET-specific rules:
 
@@ -127,6 +128,8 @@ Skill-management rules:
 - Tests should prove real Orleans, middleware, HTTP, or SignalR flows through public contracts.
 - Prefer TestServer, Orleans TestingHost, and real in-process dependencies over mocks.
 - Flaky tests are failures; fix the cause.
+- Performance and timeout behavior are release concerns: measure hot-path changes with a repeatable baseline, report latency/throughput/allocations, and verify queue cleanup and permit ownership after timeouts.
+- Investigate material acquisition throughput or p99 regressions instead of accepting them as a compatibility tradeoff; performance is the priority for this library.
 - Do not lower coverage, analyzer severity, or assertion strength to make a branch green.
 
 ## Code and Design

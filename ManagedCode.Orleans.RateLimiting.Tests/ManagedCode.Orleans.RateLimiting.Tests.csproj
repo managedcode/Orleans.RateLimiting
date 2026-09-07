@@ -46,4 +46,7 @@
         <Using Include="TUnit.Core" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(RunPerformanceTests)' != 'true'">
+        <Compile Remove="Performance/**/*.cs" />
+    </ItemGroup>
 </Project>

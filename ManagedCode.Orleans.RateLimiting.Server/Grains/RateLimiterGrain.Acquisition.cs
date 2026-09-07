@@ -21,13 +21,17 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
     protected Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TOptions options, Func<TOptions, bool> optionsChanged)
         => AcquireAndCheckConfigurationAsync(permitCount, options, optionsChanged, CancellationToken.None);
 
-    protected async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TOptions options, Func<TOptions, bool> optionsChanged, CancellationToken cancellationToken)
+    protected Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TOptions options, Func<TOptions, bool> optionsChanged, CancellationToken cancellationToken)
+        => AcquireConfiguredAsync(permitCount, options, optionsChanged, default, cancellationToken);
+
+    private async Task<RateLimitLeaseMetadata> AcquireConfiguredAsync(int permitCount, TOptions options, Func<TOptions, bool> optionsChanged,
+        AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(permitCount);
-        await EnterAcquireAsync(options, optionsChanged, permitCount, cancellationToken);
+        await EnterAcquireAsync(options, optionsChanged, permitCount, deadline, cancellationToken);
         try
         {
-            return await AcquireAndPersistAsync(permitCount, cancellationToken);
+            return await AcquireAndPersistAsync(permitCount, deadline, cancellationToken);
         }
         finally
         {
@@ -35,13 +39,13 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         }
     }
 
-    private async Task<RateLimitLeaseMetadata> AcquireAndPersistAsync(int permitCount, CancellationToken cancellationToken)
+    private async Task<RateLimitLeaseMetadata> AcquireAndPersistAsync(int permitCount, AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
         var started = Stopwatch.GetTimestamp();
         var outcome = RateLimiterMetrics.Failed;
         try
         {
-            var metadata = await AcquireLeaseCoreAsync(permitCount, cancellationToken);
+            var metadata = await AcquireLeaseCoreAsync(permitCount, deadline, cancellationToken);
             outcome = metadata.IsAcquired ? RateLimiterMetrics.Acquired : RateLimiterMetrics.Rejected;
             return metadata;
         }
@@ -56,25 +60,27 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         }
     }
 
-    private async Task<RateLimitLeaseMetadata> AcquireLeaseCoreAsync(int permitCount, CancellationToken cancellationToken)
+    private async Task<RateLimitLeaseMetadata> AcquireLeaseCoreAsync(int permitCount, AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
         var leaseId = Guid.NewGuid();
-        var lease = await RateLimiter.AcquireAsync(permitCount, cancellationToken);
-        if (cancellationToken.IsCancellationRequested)
+        var lease = await AcquireNativeAsync(permitCount, deadline, cancellationToken);
+        if (cancellationToken.IsCancellationRequested || deadline.IsExpired)
         {
             lease.Dispose();
             cancellationToken.ThrowIfCancellationRequested();
+            deadline.ThrowIfExpired();
         }
-        var metadata = new RateLimitLeaseMetadata(leaseId, this.GetGrainId(), lease);
+        var metadata = new RateLimitLeaseMetadata(leaseId, this.GetGrainId(), lease) { IsReleaseOptional = !RequiresLeaseRelease };
 
         if (!lease.IsAcquired)
             return await PersistRejectedLeaseAsync(lease, metadata);
 
         await PersistAcquiredLeaseAsync(leaseId, lease, permitCount);
-        if (cancellationToken.IsCancellationRequested)
+        if (cancellationToken.IsCancellationRequested || deadline.IsExpired)
         {
             await ReleaseLease(leaseId);
             cancellationToken.ThrowIfCancellationRequested();
+            deadline.ThrowIfExpired();
         }
         return metadata;
     }
@@ -100,12 +106,16 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
             CaptureRuntimeSnapshot(state);
         });
 
-        TrackLease(leaseId, lease, permitCount);
+        if (RequiresLeaseRelease)
+            TrackLease(leaseId, lease, permitCount);
+        else
+            lease.Dispose();
     }
 
-    private async Task EnterAcquireAsync(CancellationToken cancellationToken)
+    private async Task EnterAcquireAsync(AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
-        await _configurationLock.WaitAsync(cancellationToken);
+        if (!await _configurationLock.WaitAsync(deadline.Remaining, cancellationToken))
+            throw AcquisitionDeadline.CreateException();
         try
         {
             lock (_limiterLifetimeSync)
@@ -119,15 +129,16 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         }
     }
 
-    private async Task EnterAcquireAsync(TOptions options, Func<TOptions, bool> optionsChanged, int permitCount, CancellationToken cancellationToken)
+    private async Task EnterAcquireAsync(TOptions options, Func<TOptions, bool> optionsChanged, int permitCount, AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
-        await _configurationLock.WaitAsync(cancellationToken);
+        if (!await _configurationLock.WaitAsync(deadline.Remaining, cancellationToken))
+            throw AcquisitionDeadline.CreateException();
         try
         {
+            deadline.ThrowIfExpired();
             if (optionsChanged(options))
             {
-                await WaitForActiveAcquiresAsync(cancellationToken);
-                await ConfigureLimiterAsync(options, permitCount, cancellationToken);
+                await ConfigureWithinDeadlineAsync(options, permitCount, deadline, cancellationToken);
             }
 
             lock (_limiterLifetimeSync)

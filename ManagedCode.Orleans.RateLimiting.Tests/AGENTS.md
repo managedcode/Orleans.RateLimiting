@@ -13,6 +13,8 @@ Contains integration and behaviour tests for grain limiters, HTTP middleware, Si
 - `Cluster/Grains/` — test grain contracts and implementations.
 - `TestApp/` — ASP.NET Core test app, controller, and SignalR hub.
 - `*Tests.cs` — TUnit test classes grouped by limiter or integration surface.
+- `Cluster/TimeoutTestCluster.cs` — short client/silo timeout fixture with real RPC counters.
+- `Performance/` — opt-in benchmark fixture with verified gateway/placement; see `../docs/PerformanceAndTimeouts.md`.
 
 ## Boundaries
 

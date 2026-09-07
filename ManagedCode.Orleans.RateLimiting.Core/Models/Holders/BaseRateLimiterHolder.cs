@@ -10,40 +10,32 @@ public abstract partial class BaseRateLimiterHolder<TGrain, TOption> : ILimiterH
     where TGrain : IRateLimiterGrainWithConfiguration<TOption>
     where TOption : class
 {
+    private const int DefaultPermitCount = 1;
     private readonly TGrain _grain;
+    private readonly IBoundedRateLimiterGrain<TOption> _boundedGrain;
     private readonly IGrainFactory _grainFactory;
     private readonly TOption? _option;
 
     internal BaseRateLimiterHolder(TGrain grain, IGrainFactory grainFactory)
     {
         _grain = grain;
+        _boundedGrain = grain.AsReference<IBoundedRateLimiterGrain<TOption>>();
         _grainFactory = grainFactory;
     }
 
     internal BaseRateLimiterHolder(TGrain grain, IGrainFactory grainFactory, TOption option)
     {
         _grain = grain;
+        _boundedGrain = grain.AsReference<IBoundedRateLimiterGrain<TOption>>();
         _grainFactory = grainFactory;
         _option = option;
     }
 
-    public async Task<OrleansRateLimitLease> AcquireAsync(int permitCount = 1)
-    {
-        try
-        {
-            var metadata = await _grain.AcquireAsync(permitCount);
-            return new OrleansRateLimitLease(metadata, _grainFactory);
-        }
-        catch (TimeoutException)
-        {
-            return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
-        }
-    }
+    public Task<OrleansRateLimitLease> AcquireAsync(int permitCount = 1)
+        => AcquireAsync(permitCount, System.Threading.CancellationToken.None);
 
-    public async Task<OrleansRateLimitLease> AcquireAndConfigureAsync(int permitCount = 1)
-    {
-        return _option is null ? await AcquireAsync(permitCount) : await AcquireAndCheckConfigurationAsync(permitCount, _option);
-    }
+    public Task<OrleansRateLimitLease> AcquireAndConfigureAsync(int permitCount = 1)
+        => AcquireAndConfigureAsync(permitCount, System.Threading.CancellationToken.None);
 
     public ValueTask<RateLimiterStatistics?> GetStatisticsAsync()
     {
@@ -60,44 +52,11 @@ public abstract partial class BaseRateLimiterHolder<TGrain, TOption> : ILimiterH
         return _grain.DeleteStateAsync();
     }
 
-    public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(TOption? options)
-    {
-        if (options is null && _option is null)
-            return await AcquireAsync();
+    public Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(TOption? options)
+        => AcquireAndCheckConfigurationAsync(DefaultPermitCount, options, System.Threading.CancellationToken.None);
 
-        if (_option is not null)
-            options = _option;
-
-        try
-        {
-            ArgumentNullException.ThrowIfNull(options);
-            var metadata = await _grain.AcquireAndCheckConfigurationAsync(options);
-            return new OrleansRateLimitLease(metadata, _grainFactory);
-        }
-        catch (TimeoutException)
-        {
-            return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
-        }
-    }
-
-    public async Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(int permitCount, TOption? options)
-    {
-        if (_option is not null)
-            options = _option;
-
-        if (options is null)
-            return await AcquireAsync(permitCount);
-
-        try
-        {
-            var metadata = await _grain.AcquireAndCheckConfigurationAsync(permitCount, options);
-            return new OrleansRateLimitLease(metadata, _grainFactory);
-        }
-        catch (TimeoutException)
-        {
-            return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
-        }
-    }
+    public Task<OrleansRateLimitLease> AcquireAndCheckConfigurationAsync(int permitCount, TOption? options)
+        => AcquireAndCheckConfigurationAsync(permitCount, options, System.Threading.CancellationToken.None);
 
     public ValueTask Configure(TOption options)
     {

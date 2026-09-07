@@ -14,6 +14,7 @@ Provides ASP.NET Core and SignalR integration that resolves rate-limiter metadat
 - `Middlewares/RateLimitingHubFilter.cs` — SignalR hub invocation limiting.
 - `Attributes/` — ASP.NET-facing limiter attributes.
 - `Extensions/` — registration and pipeline helpers.
+- `GrainCallFilters/` — scalar acquisition budgets derived from client messaging options.
 
 ## Boundaries
 

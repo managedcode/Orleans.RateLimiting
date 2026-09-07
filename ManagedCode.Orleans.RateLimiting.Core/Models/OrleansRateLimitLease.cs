@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Frozen;
 using System.Globalization;
 using System.Diagnostics;
 using System.Linq;
@@ -16,17 +17,27 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models;
 public class OrleansRateLimitLease : IAsyncDisposable
 {
     private readonly GrainId _grainId;
+    private readonly IRateLimiterGrain? _releaseGrain;
     private readonly Guid _guid;
-    private readonly Dictionary<string, string?> _metadata;
+    private readonly bool _isReleaseOptional;
+    private readonly IReadOnlyDictionary<string, string?> _metadata;
     private bool _disposed;
 
     public OrleansRateLimitLease(RateLimitLeaseMetadata metadata, IGrainFactory grainFactory)
     {
         _guid = metadata.LeaseId;
+        _isReleaseOptional = metadata.IsReleaseOptional;
         _grainId = metadata.GrainId;
         IsAcquired = metadata.IsAcquired;
-        _metadata = metadata.Metadata.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        _metadata = metadata.Metadata is [] ? FrozenDictionary<string, string?>.Empty : metadata.Metadata.ToDictionary(k => k.Key, v => v.Value?.ToString());
         GrainFactory = grainFactory;
+    }
+
+    internal OrleansRateLimitLease(RateLimitLeaseMetadata metadata, IGrainFactory grainFactory, IRateLimiterGrain releaseGrain)
+        : this(metadata, grainFactory)
+    {
+        if (!metadata.IsReleaseOptional && releaseGrain.GetGrainId() == metadata.GrainId)
+            _releaseGrain = releaseGrain;
     }
 
     public IGrainFactory GrainFactory { get; init; }
@@ -41,7 +52,7 @@ public class OrleansRateLimitLease : IAsyncDisposable
 
     public bool IsAcquired { get; init; }
 
-    public IEnumerable<string> MetadataNames => _metadata.Select(s => s.Key);
+    public IEnumerable<string> MetadataNames => _metadata.Keys;
 
     public async ValueTask DisposeAsync()
     {
@@ -50,7 +61,7 @@ public class OrleansRateLimitLease : IAsyncDisposable
 
         _disposed = true;
 
-        if (_guid == Guid.Empty)
+        if (_guid == Guid.Empty || _isReleaseOptional)
         {
             GC.SuppressFinalize(this);
             return;
@@ -58,7 +69,8 @@ public class OrleansRateLimitLease : IAsyncDisposable
 
         try
         {
-            await GrainFactory.GetGrain(_grainId).AsReference<IRateLimiterGrain>().ReleaseLease(_guid);
+            var grain = _releaseGrain ?? GrainFactory.GetGrain(_grainId).AsReference<IRateLimiterGrain>();
+            await grain.ReleaseLease(_guid);
         }
         catch
         {

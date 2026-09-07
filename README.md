@@ -451,3 +451,20 @@ Current local coverage after the .NET 10 migration and request-orchestration ref
 ## Contributing
 
 Issues and pull requests are welcome in the [GitHub repository](https://github.com/managedcode/Orleans.RateLimiting).
+
+### Acquisition deadlines and performance
+
+Register `AddOrleansRateLimiting()` on the client and silo. Version 10.2 holder acquisitions
+use server-bounded RPCs; deploy updated silos before clients. The client supplies a wait
+budget of 80% of the Orleans response timeout. The configured steady-state fast path
+creates no deadline timer and uses distributed cancellation only for a cancellable caller
+token. Queued/configuration waits enforce their remaining budget locally on the server.
+Deadlines return rejected leases; caller cancellation throws `OperationCanceledException`.
+
+Fixed-window, sliding-window and token-bucket leases omit unnecessary release RPCs and
+server retention. Concurrency disposal reuses the holder's grain reference to return permits.
+Empty lease metadata shares immutable storage. Global Orleans timeout settings are unchanged;
+network failures still do not provide distributed concurrency-lease expiry guarantees.
+
+See [performance and timeout validation](docs/PerformanceAndTimeouts.md) for measured
+throughput, p99, allocations, real-token comparisons, and reproducible benchmark commands.

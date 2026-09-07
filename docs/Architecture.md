@@ -169,3 +169,17 @@ and failed clears preserve the runtime limiter. Snapshot time uses the activatio
 `TimeProvider`. Metrics expose bounded algorithm/outcome tags and an aggregate active
 concurrency-permit count. See [cancellation and observability](CancellationAndObservability.md)
 for the sequence diagram, deployment order, metric names and test boundaries.
+
+## Acquisition budgets and lease release
+
+Client and Server registration bind hosting response-timeout options to Core's scalar
+budget filter. Co-hosted applications install one filter using silo options. Only bounded
+limiter acquisitions receive this budget; unrelated grain calls retain Orleans behavior.
+Holders cache their grain references and avoid native cancellation when the caller token
+cannot be cancelled. The server creates timeout machinery for waiting/configuration paths;
+configured immediate acquisitions do not allocate deadline timers.
+
+Known time-based limiters dispose native leases immediately and send additive metadata
+allowing clients to omit the release RPC. Concurrency and custom base-grain implementations
+retain explicit release ownership. Empty metadata shares immutable storage. See
+[performance validation](PerformanceAndTimeouts.md) for the flow diagram, results and limits.

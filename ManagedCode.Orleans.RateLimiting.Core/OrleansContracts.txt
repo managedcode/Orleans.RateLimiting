@@ -10,6 +10,14 @@
 # Review every diff: identity or signature changes can break wire compatibility during rolling upgrades.
 # Details: https://aka.ms/orleans/OrleansContracts.txt
 
+interface [GrainInterfaceType("ManagedCode.Orleans.RateLimiting.Core.Interfaces.IBoundedRateLimiterGrain")] ManagedCode.Orleans.RateLimiting.Core.Interfaces.IBoundedRateLimiterGrain [Version(0)]
+  1260B2F7: AcquireCancellableWithDeadlineAsync(int, System.TimeSpan, System.Threading.CancellationToken) -> Task<ManagedCode.Orleans.RateLimiting.Core.Models.RateLimitLeaseMetadata>
+  AA6FF5BF: AcquireWithDeadlineAsync(int, System.TimeSpan) -> Task<ManagedCode.Orleans.RateLimiting.Core.Models.RateLimitLeaseMetadata>
+
+interface [GrainInterfaceType("ManagedCode.Orleans.RateLimiting.Core.Interfaces.IBoundedRateLimiterGrain`1")] ManagedCode.Orleans.RateLimiting.Core.Interfaces.IBoundedRateLimiterGrain<TOptions> [Version(0)]
+  6A75F086: AcquireAndCheckConfigurationCancellableWithDeadlineAsync(int, TOptions, System.TimeSpan, System.Threading.CancellationToken) -> Task<ManagedCode.Orleans.RateLimiting.Core.Models.RateLimitLeaseMetadata>
+  420EFCC9: AcquireAndCheckConfigurationWithDeadlineAsync(int, TOptions, System.TimeSpan) -> Task<ManagedCode.Orleans.RateLimiting.Core.Models.RateLimitLeaseMetadata>
+
 interface [GrainInterfaceType("ManagedCode.Orleans.RateLimiting.Core.Interfaces.ICancellableRateLimiterGrain")] ManagedCode.Orleans.RateLimiting.Core.Interfaces.ICancellableRateLimiterGrain [Version(0)]
   8E3CC64D: AcquireAsync(int, System.Threading.CancellationToken) -> Task<ManagedCode.Orleans.RateLimiting.Core.Models.RateLimitLeaseMetadata>
 

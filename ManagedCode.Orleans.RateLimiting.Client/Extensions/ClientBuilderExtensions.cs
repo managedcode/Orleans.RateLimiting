@@ -1,6 +1,3 @@
-using ManagedCode.Orleans.RateLimiting.Core.Extensions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orleans;
 using Orleans.Hosting;
 
@@ -10,8 +7,7 @@ public static class ClientBuilderExtensions
 {
     public static IClientBuilder AddOrleansRateLimiting(this IClientBuilder clientBuilder)
     {
-        clientBuilder.Services.AddOrleansRateLimitingCore();
-        clientBuilder.Services.TryAddSingleton<IGrainFactory>(serviceProvider => serviceProvider.GetRequiredService<IClusterClient>());
+        clientBuilder.Services.AddOrleansRateLimiting();
         return clientBuilder;
     }
 }

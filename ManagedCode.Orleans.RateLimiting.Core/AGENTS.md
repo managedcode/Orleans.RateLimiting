@@ -13,6 +13,7 @@ Defines shared Orleans rate-limiter contracts, attributes, option models, lease 
 - `Models/` — rate-limit leases, config, metadata, and holder types.
 - `Surrogates/` — Orleans serialization surrogates and converters for rate limiter options/statistics.
 - `Extensions/` — shared service and grain-factory helpers.
+- `Services/RateLimiterTimeoutFilter.cs` — shared outgoing budget plumbing with a host-supplied timeout.
 
 ## Boundaries
 

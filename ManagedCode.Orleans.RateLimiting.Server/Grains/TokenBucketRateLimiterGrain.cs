@@ -13,7 +13,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.TokenBucketRateLimiter)]
-public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimiter, TokenBucketRateLimiterOptions>, ITokenBucketRateLimiterGrain, ICancellableRateLimiterGrain<TokenBucketRateLimiterOptions>
+public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimiter, TokenBucketRateLimiterOptions>, ITokenBucketRateLimiterGrain, ICancellableRateLimiterGrain<TokenBucketRateLimiterOptions>, IBoundedRateLimiterGrain<TokenBucketRateLimiterOptions>
 {
     private const int NoPermits = 0;
 
@@ -25,6 +25,10 @@ public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimit
         : base(logger, options.Value, state, persistenceOptions)
     {
     }
+
+    protected override bool RequiresLeaseRelease => false;
+
+    protected override bool IsQueueEnabled => Options.QueueLimit != default;
 
     protected override int PermitLimit => Options.TokenLimit;
 
@@ -47,6 +51,12 @@ public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimit
     {
         return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
     }
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationWithDeadlineAsync(int permitCount, TokenBucketRateLimiterOptions options, TimeSpan timeout)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, CancellationToken.None);
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationCancellableWithDeadlineAsync(int permitCount, TokenBucketRateLimiterOptions options, TimeSpan timeout, CancellationToken cancellationToken)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, cancellationToken);
 
     protected override TokenBucketRateLimiter CreateDefaultRateLimiter()
     {

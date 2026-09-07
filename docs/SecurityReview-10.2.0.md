@@ -234,3 +234,15 @@ also exercised through an actual Orleans grain timer, a real memory provider wit
 an injected write failure, and an isolated controllable grain clock. Shutdown
 cancellation is verified with a cancellable persistent-state test double.
 See [implementation details and deployment order](CancellationAndObservability.md).
+
+## Performance and timeout follow-up
+
+| ID | Confirmed issue | Correction |
+| --- | --- | --- |
+| SEC-16 | An Orleans response timeout with `CancelRequestOnTimeout=false` rejected the caller while leaving the native acquisition queued. Cancelling only after the timeout is too late because Orleans has removed the callback's cancellation registration. | A scalar budget bounds native queues and configuration waits on the server. The configured fast path avoids client deadline timers and forced cancellation traffic; all 10.2 holders use the bounded capability. Eighteen real RPC tests cover client/silo calls and 16-request storms for all four algorithms, checking empty queues and returned concurrency capacity. The original queue-cleanup regression failed against the previous behavior. |
+| SEC-17 | Time-based acquisitions retained native leases keyed by a fresh GUID until client disposal, even though disposal cannot replenish their quota. Clients which omitted disposal caused avoidable server retention. | Dispose known time-based native leases immediately and send an additive optional-release flag. Older payloads still require release; concurrency retains explicit ownership. Real RPC counters verify zero release calls for time-based leases and exactly one for concurrency, with quota unchanged. |
+
+See [benchmark data, deadline semantics and compatibility](PerformanceAndTimeouts.md).
+These changes do not provide a distributed lease expiry guarantee during network
+partitions, lost replies or client crashes. Concurrency leases still require explicit
+release, and the existing persistence model remains a best-effort snapshot.

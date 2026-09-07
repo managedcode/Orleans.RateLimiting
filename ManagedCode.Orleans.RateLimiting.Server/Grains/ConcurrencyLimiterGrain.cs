@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.ConcurrencyLimiter)]
-public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain, ICancellableRateLimiterGrain<ConcurrencyLimiterOptions>
+public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain, ICancellableRateLimiterGrain<ConcurrencyLimiterOptions>, IBoundedRateLimiterGrain<ConcurrencyLimiterOptions>
 {
     public ConcurrencyLimiterGrain(
         ILogger<ConcurrencyLimiterGrain> logger,
@@ -24,6 +25,8 @@ public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, Conc
     }
 
     protected override bool TracksActiveLeaseState => true;
+
+    protected override bool IsQueueEnabled => Options.QueueLimit != default;
 
     protected override int PermitLimit => Options.PermitLimit;
 
@@ -41,6 +44,12 @@ public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, Conc
     {
         return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
     }
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationWithDeadlineAsync(int permitCount, ConcurrencyLimiterOptions options, TimeSpan timeout)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, CancellationToken.None);
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationCancellableWithDeadlineAsync(int permitCount, ConcurrencyLimiterOptions options, TimeSpan timeout, CancellationToken cancellationToken)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, cancellationToken);
 
     protected override ConcurrencyLimiter CreateDefaultRateLimiter()
     {

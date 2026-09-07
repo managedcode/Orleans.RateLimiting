@@ -13,7 +13,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.SlidingWindowRateLimiter)]
-public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain, ICancellableRateLimiterGrain<SlidingWindowRateLimiterOptions>
+public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain, ICancellableRateLimiterGrain<SlidingWindowRateLimiterOptions>, IBoundedRateLimiterGrain<SlidingWindowRateLimiterOptions>
 {
     public SlidingWindowRateLimiterGrain(
         ILogger<SlidingWindowRateLimiterGrain> logger,
@@ -23,6 +23,10 @@ public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateL
         : base(logger, options.Value, state, persistenceOptions)
     {
     }
+
+    protected override bool RequiresLeaseRelease => false;
+
+    protected override bool IsQueueEnabled => Options.QueueLimit != default;
 
     protected override int PermitLimit => Options.PermitLimit;
 
@@ -45,6 +49,12 @@ public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateL
     {
         return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
     }
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationWithDeadlineAsync(int permitCount, SlidingWindowRateLimiterOptions options, TimeSpan timeout)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, CancellationToken.None);
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationCancellableWithDeadlineAsync(int permitCount, SlidingWindowRateLimiterOptions options, TimeSpan timeout, CancellationToken cancellationToken)
+        => AcquireAndCheckConfigurationWithDeadlineAsync(permitCount, options, CheckOptions, timeout, cancellationToken);
 
     protected override SlidingWindowRateLimiter CreateDefaultRateLimiter()
     {

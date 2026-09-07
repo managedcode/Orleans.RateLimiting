@@ -9,7 +9,7 @@ Implements Orleans grains, grain call filters, and silo registration helpers for
 ## Entry Points
 
 - `Grains/` — concrete limiter grain implementations.
-- `GrainCallFilter/` — incoming call filters that enforce limiter attributes on grain calls.
+- `GrainCallFilter/` — incoming attribute enforcement and outgoing acquisition-budget filters.
 - `Extensions/` — silo builder registration helpers for limiter types.
 - `Properties/AssemblyInfo.cs` — Orleans application-part metadata.
 
@@ -42,3 +42,4 @@ Implements Orleans grains, grain call filters, and silo registration helpers for
 - Incoming grain call filter ordering and key selection.
 - Silo builder extension defaults.
 - Rate limiter option mapping to .NET runtime limiter implementations.
+- Bounded acquisition fast paths, native queue cleanup, and explicit concurrency-lease release.
