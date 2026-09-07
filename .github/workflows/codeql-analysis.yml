@@ -12,6 +12,7 @@
 name: CodeQL
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -20,22 +21,25 @@ on:
   schedule:
     - cron: '35 11 * * 4'
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'csharp' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
-        # Learn more:
-        # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
+        language: [ 'csharp', 'actions' ]
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7.0.1
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
@@ -43,14 +47,17 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      if: matrix.language == 'csharp'
+      uses: actions/setup-dotnet@v6.0.0
       with:
         dotnet-version: '10.0.x'
 
     - name: Restore
+      if: matrix.language == 'csharp'
       run: dotnet restore ManagedCode.Orleans.RateLimiting.sln
 
     - name: Build
+      if: matrix.language == 'csharp'
       run: dotnet build ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-restore
 
     - name: Perform CodeQL Analysis

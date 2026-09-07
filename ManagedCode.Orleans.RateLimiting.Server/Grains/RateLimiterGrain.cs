@@ -217,7 +217,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
 
     protected async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TOptions options, Func<TOptions, bool> optionsChanged)
     {
-        await EnterAcquireAsync(options, optionsChanged);
+        ArgumentOutOfRangeException.ThrowIfNegative(permitCount);
+        await EnterAcquireAsync(options, optionsChanged, permitCount);
         try
         {
             return await AcquireAndPersistAsync(permitCount);
@@ -226,15 +227,6 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         {
             ExitAcquire();
         }
-    }
-
-    private async Task ConfigureLimiterAsync(TOptions options)
-    {
-        DisposeRateLimiter();
-        _options = options;
-        RateLimiter = CreateDefaultRateLimiter();
-        await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true);
-        _logger.LogInformation(RateLimiterLogMessages.ConfiguredLimiter, typeof(TLimiter).Name, this.GetPrimaryKeyString());
     }
 
     private async Task<RateLimitLeaseMetadata> AcquireAndPersistAsync(int permitCount)
@@ -308,7 +300,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         }
     }
 
-    private async Task EnterAcquireAsync(TOptions options, Func<TOptions, bool> optionsChanged)
+    private async Task EnterAcquireAsync(TOptions options, Func<TOptions, bool> optionsChanged, int permitCount)
     {
         await _configurationLock.WaitAsync();
         try
@@ -316,7 +308,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
             if (optionsChanged(options))
             {
                 await WaitForActiveAcquiresAsync();
-                await ConfigureLimiterAsync(options);
+                await ConfigureLimiterAsync(options, permitCount);
             }
 
             lock (_limiterLifetimeSync)

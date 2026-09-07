@@ -284,6 +284,9 @@ while acquisition/lease ownership is active. It rolls back earlier permits if a
 later acquisition fails and waits for pending acquisition during disposal. Build
 a group before acquiring it and continue to use `await using` around protected work.
 
+Invalid configuration updates and invalid permit counts leave the existing limiter,
+quota, and active concurrency leases intact. Correct the rejected input before retrying.
+
 ## ASP.NET Core Usage
 
 Register named limiter options and configure request orchestration rules.

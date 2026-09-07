@@ -170,3 +170,52 @@ Follow-up verification:
   they reproduced policy bypasses, ignored metadata, lease leaks, and missing
   exception codecs before applying the fixes. The retry-after-rejection test also
   preserves an existing supported behavior.
+
+
+## Completion review: rejected updates and workflow permissions
+
+Baseline: `f6ed127`. Plan: reproduce failed configuration replacement and negative
+permit-count side effects through all four real grain types, preserve the existing
+limiter when input validation fails, then verify the focused and full suites,
+coverage, analyzer build, formatting, and packages. Also fix the remaining CodeQL
+`actions/missing-workflow-permissions` finding in the analysis workflow and replace
+outdated Actions with current releases. Validate CI and CodeQL on the pushed SHA.
+No public grain signatures, publishing triggers, package identities, or runtime
+dependencies change. Configure/reset operations remain trusted application APIs;
+the correction prevents invalid requests from corrupting their existing state.
+
+| ID | Confirmed issue | Correction |
+| --- | --- | --- |
+| SEC-11 | Invalid configuration replacement disposed the working limiter before validating its replacement. Invalid permit counts could commit changed configuration and reset quota before rejecting acquisition. | Build and validate the candidate before disposing the old limiter; reject negative counts before configuration work. Sixteen real Orleans regression cases cover both update entry points and negative/excessive counts across all four algorithms, asserting retained configuration, exhausted quota, and concurrency lease ownership. All sixteen failed before the correction and passed afterward. |
+| SEC-12 | CodeQL alert 5 identified implicit token permissions in the analysis workflow. CI also used deprecated Actions runtimes. | Set read-only workflow defaults and grant only contents read/security-events write to analysis jobs. Scan C# and Actions. Update official checkout/setup/artifact actions and Codecov, quote shell inputs, and pass dynamic release values/secrets through environment variables. Publishing conditions and behavior are unchanged. |
+
+```mermaid
+flowchart LR
+    Request["Configuration + optional permit count"] --> Validate["Construct and validate candidate"]
+    Validate -->|"Invalid"| Preserve["Reject; retain old options, quota, leases"]
+    Validate -->|"Valid"| Replace["Dispose old limiter; install candidate"]
+    Replace --> Persist["Persist configuration"]
+```
+
+The existing protected factory reads candidate options synchronously; they are
+restored in `finally` before any await. This preserves subclass signatures. The
+existing oversized generic grain type remains a documented maintainability
+exception; replacement logic is isolated in a new partial file of 50 lines.
+Future work can split the remaining lifecycle partial without changing contracts.
+
+Actions releases were verified against upstream releases:
+[checkout 7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1),
+[setup-dotnet 6.0.0](https://github.com/actions/setup-dotnet/releases/tag/v6.0.0),
+[upload-artifact 7.0.1](https://github.com/actions/upload-artifact/releases/tag/v7.0.1),
+[download-artifact 8.0.1](https://github.com/actions/download-artifact/releases/tag/v8.0.1),
+and [Codecov 7.0.0](https://github.com/codecov/codecov-action/releases/tag/v7.0.0).
+
+Verification for this completion pass: all 55 security cases and all 127 full-suite
+tests passed, with zero failures or skipped tests. Coverlet line coverage is
+93.34% overall (Client 93.75%, Core 93.50%, Server 92.91%). Release/analyzer builds,
+format verification, coverage report, package creation, and `actionlint` passed.
+Release-note scripts passed isolated dry runs for an initial release, a previous
+revision, and a shell-shaped tag passed literally through the environment. No
+publishing step was executed. GitHub reported zero open Dependabot alerts.
+The remaining CodeQL alert is corrected in source; default-branch alert status
+will only update after this branch is integrated and analyzed there.

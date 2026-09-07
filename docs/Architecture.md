@@ -146,3 +146,7 @@ fail before endpoint execution. See [security review and migration](SecurityRevi
   same completion. Configure group membership before acquiring.
 - Typed rate-limit exceptions have generated Orleans codecs and explicit field IDs.
   The follow-up flow diagram and migration notes are in the [security review](SecurityReview-10.2.0.md#follow-up-review-grain-policies-and-lease-ownership).
+
+- Configuration replacement validates a candidate limiter and requested permit count
+  before disposing the current runtime limiter. Invalid input preserves its options,
+  quota, and active leases; the existing synchronous subclass factory remains supported.
