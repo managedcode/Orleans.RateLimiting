@@ -4,15 +4,17 @@ using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
+using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Server.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Orleans;
 using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDisposable
+public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDisposable, ICancellableRateLimiterGrain
     where TLimiter : RateLimiter
     where TOptions : class
 {
@@ -25,7 +27,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
     private readonly TOptions _defaultOptions;
     private readonly ILogger _logger;
     private readonly object _limiterLifetimeSync = new();
-    private readonly ConcurrentDictionary<Guid, RateLimitLease> _rateLimitLeases = new();
+    private readonly ConcurrentDictionary<Guid, TrackedLease> _rateLimitLeases = new();
     private readonly TimeSpan _stateFlushPeriod;
     private readonly IPersistentState<RateLimiterGrainState<TOptions>> _state;
     private readonly SemaphoreSlim _stateLock = new(SingleSemaphoreSlot, SingleSemaphoreSlot);
@@ -54,6 +56,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
 
     protected TOptions Options => _options;
 
+    protected virtual TimeProvider Clock => GrainContext?.ActivationServices.GetService<TimeProvider>() ?? TimeProvider.System;
+
     protected TLimiter RateLimiter { get; private set; }
 
     protected virtual bool TracksActiveLeaseState => false;
@@ -76,12 +80,14 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         await base.OnActivateAsync(cancellationToken);
     }
 
-    public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1)
+    public Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount = 1) => AcquireAsync(permitCount, CancellationToken.None);
+
+    public async Task<RateLimitLeaseMetadata> AcquireAsync(int permitCount, CancellationToken cancellationToken)
     {
-        await EnterAcquireAsync();
+        await EnterAcquireAsync(cancellationToken);
         try
         {
-            return await AcquireAndPersistAsync(permitCount);
+            return await AcquireAndPersistAsync(permitCount, cancellationToken);
         }
         finally
         {
@@ -91,8 +97,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
 
     public async ValueTask ReleaseLease(Guid leaseId)
     {
-        _rateLimitLeases.TryRemove(leaseId, out var lease);
-        lease?.Dispose();
+        if (_rateLimitLeases.TryRemove(leaseId, out var lease))
+            DisposeTrackedLease(lease);
 
         if (!TracksActiveLeaseState)
             return;
@@ -154,9 +160,9 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         try
         {
             await WaitForActiveAcquiresAsync();
+            await ClearStoredStateAsync();
             DisposeRateLimiter();
             _options = _defaultOptions;
-            await ClearStoredStateAsync();
             RateLimiter = CreateDefaultRateLimiter();
         }
         finally
@@ -173,7 +179,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
             await WaitForActiveAcquiresAsync(cancellationToken);
 
             if (!_stateDeleted || _stateDirty)
-                await MutateStateAsync(CaptureRuntimeSnapshot, flushImmediately: true);
+                await MutateStateAsync(CaptureRuntimeSnapshot, flushImmediately: true, cancellationToken, cancelBeforeMutation: true);
         }
         finally
         {
@@ -210,63 +216,6 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         return ClampAvailablePermits(savedAvailablePermits);
     }
 
-    protected async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(TOptions options, Func<TOptions, bool> optionsChanged)
-    {
-        return await AcquireAndCheckConfigurationAsync(permitCount: 1, options, optionsChanged);
-    }
-
-    protected async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TOptions options, Func<TOptions, bool> optionsChanged)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(permitCount);
-        await EnterAcquireAsync(options, optionsChanged, permitCount);
-        try
-        {
-            return await AcquireAndPersistAsync(permitCount);
-        }
-        finally
-        {
-            ExitAcquire();
-        }
-    }
-
-    private async Task<RateLimitLeaseMetadata> AcquireAndPersistAsync(int permitCount)
-    {
-        var leaseId = Guid.NewGuid();
-        var lease = await RateLimiter.AcquireAsync(permitCount);
-        var metadata = new RateLimitLeaseMetadata(leaseId, this.GetGrainId(), lease);
-
-        if (!lease.IsAcquired)
-            return await PersistRejectedLeaseAsync(lease, metadata);
-
-        await PersistAcquiredLeaseAsync(leaseId, lease, permitCount);
-        return metadata;
-    }
-
-    private async Task<RateLimitLeaseMetadata> PersistRejectedLeaseAsync(RateLimitLease lease, RateLimitLeaseMetadata metadata)
-    {
-        lease.Dispose();
-        await MutateStateAsync(state =>
-        {
-            state.TotalFailedLeases++;
-            CaptureRuntimeSnapshot(state);
-        });
-
-        return metadata;
-    }
-
-    private async Task PersistAcquiredLeaseAsync(Guid leaseId, RateLimitLease lease, int permitCount)
-    {
-        await MutateStateAsync(state =>
-        {
-            state.TotalSuccessfulLeases++;
-            AddActiveLeaseState(state, leaseId, permitCount);
-            CaptureRuntimeSnapshot(state);
-        });
-
-        if (!_rateLimitLeases.TryAdd(leaseId, lease))
-            lease.Dispose();
-    }
-
     private void ApplyStoredConfiguration()
     {
         if (_state.State.HasConfiguration && _state.State.Options is not null)
@@ -282,77 +231,6 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
             TotalFailedLeases = _state.State.TotalFailedLeases,
             TotalSuccessfulLeases = _state.State.TotalSuccessfulLeases
         };
-    }
-
-    private async Task EnterAcquireAsync()
-    {
-        await _configurationLock.WaitAsync();
-        try
-        {
-            lock (_limiterLifetimeSync)
-            {
-                _activeAcquireCount++;
-            }
-        }
-        finally
-        {
-            _configurationLock.Release();
-        }
-    }
-
-    private async Task EnterAcquireAsync(TOptions options, Func<TOptions, bool> optionsChanged, int permitCount)
-    {
-        await _configurationLock.WaitAsync();
-        try
-        {
-            if (optionsChanged(options))
-            {
-                await WaitForActiveAcquiresAsync();
-                await ConfigureLimiterAsync(options, permitCount);
-            }
-
-            lock (_limiterLifetimeSync)
-            {
-                _activeAcquireCount++;
-            }
-        }
-        finally
-        {
-            _configurationLock.Release();
-        }
-    }
-
-    private void ExitAcquire()
-    {
-        TaskCompletionSource? completed = null;
-
-        lock (_limiterLifetimeSync)
-        {
-            _activeAcquireCount--;
-            if (_activeAcquireCount == NoActiveAcquires)
-            {
-                completed = _noActiveAcquires;
-                _noActiveAcquires = null;
-            }
-        }
-
-        completed?.TrySetResult();
-    }
-
-    private Task WaitForActiveAcquiresAsync(CancellationToken cancellationToken = default)
-    {
-        Task waitTask;
-
-        lock (_limiterLifetimeSync)
-        {
-            if (_activeAcquireCount == NoActiveAcquires)
-                return Task.CompletedTask;
-
-            _noActiveAcquires ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            waitTask = _noActiveAcquires.Task;
-        }
-
-        return waitTask.WaitAsync(cancellationToken);
     }
 
     private int ClampAvailablePermits(int availablePermits)
@@ -372,7 +250,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
     private void DisposeRateLimiter()
     {
         foreach (var lease in _rateLimitLeases.Values)
-            lease.Dispose();
+            DisposeTrackedLease(lease);
 
         _rateLimitLeases.Clear();
         RateLimiter.Dispose();

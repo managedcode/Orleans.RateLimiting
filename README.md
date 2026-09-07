@@ -334,6 +334,23 @@ app.UseOrleansUserRateLimiting();
 app.MapControllers();
 ```
 
+### Cancellation and metrics (10.2.0)
+
+HTTP middleware propagates `RequestAborted`; SignalR propagates `ConnectionAborted`.
+Queued requests are cancelled in Orleans and the native limiter, and partial groups
+release concurrency leases. Direct holders also accept a token:
+
+```csharp
+await using var lease = await limiter.AcquireAsync(permitCount: 1, cancellationToken);
+```
+
+Deploy updated silos before callers of the new cancellation APIs. Existing methods
+and RPC identities remain available. Custom legacy holders remain compatible but
+cannot interrupt an acquisition unless they implement `ICancellableLimiterHolder`.
+Subscribe to meter `ManagedCode.Orleans.RateLimiting` for acquisition outcomes/durations,
+active concurrency permits, and storage writes/durations. Metric tags contain no
+partition identities. See [cancellation, metrics and persistence details](docs/CancellationAndObservability.md).
+
 ### Client IPs and trusted proxies (10.2.0)
 
 HTTP middleware and SignalR use `HttpContext.Connection.RemoteIpAddress`. Raw

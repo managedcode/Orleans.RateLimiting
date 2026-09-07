@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
@@ -11,13 +12,14 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
     where TLimiter : RateLimiter
     where TOptions : class
 {
-    private async Task ConfigureLimiterAsync(TOptions options, int? permitCount = null)
+    private async Task ConfigureLimiterAsync(TOptions options, int? permitCount = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var replacement = CreateValidatedReplacement(options, permitCount);
         DisposeRateLimiter();
         _options = options;
         RateLimiter = replacement;
-        await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true);
+        await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true, cancellationToken);
         _logger.LogInformation(RateLimiterLogMessages.ConfiguredLimiter, typeof(TLimiter).Name, this.GetPrimaryKeyString());
     }
 

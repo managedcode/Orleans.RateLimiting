@@ -5,26 +5,29 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Orleans.TestingHost;
+using TUnit.Core.Interfaces;
+using ManagedCode.Orleans.RateLimiting.Client.Extensions;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 
-public class TestClusterApplication : IDisposable, IAsyncDisposable
+public class TestClusterApplication : IAsyncInitializer, IAsyncDisposable
 {
-    private readonly IHost _host;
+    private const string TestEnvironment = "Development";
+    private IHost _host = null!;
     private bool _disposed;
 
-    public TestClusterApplication()
+    public async Task InitializeAsync()
     {
-        var builder = new TestClusterBuilder();
-        builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
-        builder.AddClientBuilderConfigurator<TestClientConfigurations>();
+        var builder = new InProcessTestClusterBuilder();
+        builder.ConfigureSilo((_, silo) => new TestSiloConfigurations().Configure(silo));
+        builder.ConfigureClient(client => client.AddOrleansRateLimiting());
         Cluster = builder.Build();
-        Cluster.Deploy();
+        await Cluster.DeployAsync();
 
         _host = new HostBuilder()
             .ConfigureWebHost(webBuilder =>
             {
-                webBuilder.UseEnvironment("Development");
+                webBuilder.UseEnvironment(TestEnvironment);
                 webBuilder.UseTestServer();
                 webBuilder.ConfigureServices(services =>
                 {
@@ -33,10 +36,11 @@ public class TestClusterApplication : IDisposable, IAsyncDisposable
                 });
                 webBuilder.Configure(HttpHostProgram.Configure);
             })
-            .Start();
+            .Build();
+        await _host.StartAsync();
     }
 
-    public TestCluster Cluster { get; }
+    public InProcessTestCluster Cluster { get; private set; } = null!;
 
     public TestServer Server => _host.GetTestServer();
 
@@ -47,17 +51,6 @@ public class TestClusterApplication : IDisposable, IAsyncDisposable
         var builder = new HubConnectionBuilder();
         configure?.Invoke(builder);
         return builder.WithUrl(new Uri(Server.BaseAddress, hubUrl), o => o.HttpMessageHandlerFactory = _ => Server.CreateHandler()).Build();
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-        _host.Dispose();
-        Cluster.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     public async ValueTask DisposeAsync()

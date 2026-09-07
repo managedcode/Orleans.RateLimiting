@@ -31,8 +31,8 @@ public class RateLimitingHubFilter : IHubFilter
 
     public async ValueTask<object?> InvokeMethodAsync(HubInvocationContext invocationContext, Func<HubInvocationContext, ValueTask<object?>> next)
     {
-        await using var holder = await _orchestrator.CreateLimiterGroupAsync(CreateContext(invocationContext));
-        var lease = await holder.AcquireAsync();
+        await using var holder = await _orchestrator.CreateLimiterGroupAsync(CreateContext(invocationContext), invocationContext.Context.ConnectionAborted);
+        var lease = await holder.AcquireAsync(invocationContext.Context.ConnectionAborted);
         if (lease is not null)
         {
             _logger.LogInformation(RateLimitMiddlewareConstants.SignalRRateLimitedLogMessage, invocationContext.HubMethodName, lease.Reason);

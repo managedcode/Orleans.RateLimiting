@@ -30,6 +30,7 @@
         <PackageReference Include="Microsoft.Orleans.Sdk" />
         <PackageReference Include="Microsoft.Orleans.Serialization.SystemTextJson" />
         <PackageReference Include="Microsoft.Orleans.Serialization.TestKit" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
         <PackageReference Include="Shouldly" />
         <PackageReference Include="TUnit" />
     </ItemGroup>

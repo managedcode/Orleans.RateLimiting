@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using ManagedCode.Orleans.RateLimiting.Server.Diagnostics;
 using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
@@ -27,7 +29,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         var runtimeStatistics = RateLimiter.GetStatistics();
         state.HasSnapshot = true;
         state.CurrentAvailablePermits = ToAvailablePermitCount(runtimeStatistics?.CurrentAvailablePermits);
-        state.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        state.UpdatedAtUtc = Clock.GetUtcNow();
     }
 
     private async Task ClearStoredStateAsync()
@@ -35,10 +37,10 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         await _stateLock.WaitAsync();
         try
         {
+            await _state.ClearStateAsync();
+            _state.State = new RateLimiterGrainState<TOptions>();
             _stateDirty = false;
             _stateDeleted = true;
-            _state.State = new RateLimiterGrainState<TOptions>();
-            await _state.ClearStateAsync();
         }
         finally
         {
@@ -58,6 +60,10 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         {
             await FlushStateIfDirtyAsync(cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected when the timer or activation is stopping. Dirty state is retained.
+        }
         catch (Exception exception)
         {
             _logger.LogError(exception, RateLimiterLogMessages.StateFlushFailed, typeof(TLimiter).Name, this.GetPrimaryKeyString());
@@ -72,7 +78,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         await _stateLock.WaitAsync(cancellationToken);
         try
         {
-            await FlushStateIfDirtyLockedAsync();
+            await FlushStateIfDirtyLockedAsync(cancellationToken);
         }
         finally
         {
@@ -80,13 +86,28 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         }
     }
 
-    private async Task FlushStateIfDirtyLockedAsync()
+    private async Task FlushStateIfDirtyLockedAsync(CancellationToken cancellationToken)
     {
         if (!_stateDirty)
             return;
 
-        await _state.WriteStateAsync();
-        _stateDirty = false;
+        var started = Stopwatch.GetTimestamp();
+        var outcome = RateLimiterMetrics.Failed;
+        try
+        {
+            await _state.WriteStateAsync(cancellationToken);
+            _stateDirty = false;
+            outcome = RateLimiterMetrics.Written;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            outcome = RateLimiterMetrics.Cancelled;
+            throw;
+        }
+        finally
+        {
+            RateLimiterMetrics.RecordStateWrite<TLimiter>(outcome, started);
+        }
     }
 
     private int GetRestoredAvailablePermits()
@@ -95,7 +116,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         if (!state.HasSnapshot)
             return PermitLimit;
 
-        return GetRestoredAvailablePermits(state.UpdatedAtUtc, state.CurrentAvailablePermits, DateTimeOffset.UtcNow);
+        return GetRestoredAvailablePermits(state.UpdatedAtUtc, state.CurrentAvailablePermits, Clock.GetUtcNow());
     }
 
     private async Task RestoreRateLimiterAsync()
@@ -117,7 +138,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         {
             var lease = RateLimiter.AttemptAcquire(activeLease.PermitCount);
             if (lease.IsAcquired)
-                _rateLimitLeases.TryAdd(activeLease.LeaseId, lease);
+                TrackLease(activeLease.LeaseId, lease, activeLease.PermitCount);
             else
                 lease.Dispose();
         }
@@ -145,7 +166,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         state.HasSnapshot = true;
         state.TotalFailedLeases = NoAvailablePermits;
         state.TotalSuccessfulLeases = NoAvailablePermits;
-        state.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        state.UpdatedAtUtc = Clock.GetUtcNow();
     }
 
     private void ResetStateForConfiguration(RateLimiterGrainState<TOptions> state, TOptions options)
@@ -160,9 +181,10 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         return ClampAvailablePermits((int)(availablePermits ?? PermitLimit));
     }
 
-    private async Task MutateStateAsync(Action<RateLimiterGrainState<TOptions>> update, bool flushImmediately = false)
+    private async Task MutateStateAsync(Action<RateLimiterGrainState<TOptions>> update, bool flushImmediately = false, CancellationToken cancellationToken = default, bool cancelBeforeMutation = false)
     {
-        await _stateLock.WaitAsync();
+        // Runtime mutation and its dirty snapshot must remain atomic on cancellation.
+        await _stateLock.WaitAsync(cancelBeforeMutation ? cancellationToken : CancellationToken.None);
         try
         {
             update(_state.State);
@@ -170,7 +192,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
             _stateDirty = true;
 
             if (flushImmediately)
-                await FlushStateIfDirtyLockedAsync();
+                await FlushStateIfDirtyLockedAsync(cancellationToken);
         }
         finally
         {

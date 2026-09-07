@@ -25,7 +25,13 @@ GitHub's release API confirms Orleans 10.3.1, published 2026-08-28; older cached
 release pages can show 10.2.x. This review targets the installed release, not preview
 APIs or descriptions from a different version.
 
-## Prioritized improvements
+## Prioritized improvements at the review baseline
+
+Cancellation, persistence writes/clocks, asynchronous TestingHost, bounded metrics,
+and token snapshot boundaries are now implemented. See
+[implementation, compatibility and operational details](CancellationAndObservability.md).
+The table below preserves the original evidence and acceptance criteria; the
+benchmark-dependent lease/RPC optimization remains a separate performance design.
 
 | Priority | Area and current evidence | Recommendation and acceptance criteria |
 | --- | --- | --- |
@@ -38,11 +44,10 @@ APIs or descriptions from a different version.
 | P2 | Logging exists, but the package does not publish its own acquisition/queue/flush metrics. Orleans 10.3 changed RPC activity tags. | Add a bounded-cardinality `System.Diagnostics.Metrics` meter for allowed/rejected/cancelled acquisitions, queue duration, active concurrency permits, and storage flush failures. Tag algorithm and outcome; never raw user, IP, tenant, or grain keys. Test counters with `MeterListener`; update consumer telemetry queries to current Orleans tags. Avoid bundling a dashboard or telemetry backend into the library. |
 | P2 | Persisted quotas are aggregate snapshots with an update timestamp. Fixed/sliding restoration is conservative and abrupt crashes can lose unflushed changes. | Keep the documented best-effort rate-limit semantics. Add boundary tests for replenishment, clock movement, extreme arithmetic, and rolling upgrades with persisted state. Exact sliding-segment restoration or crash-durable billing requires a separate versioned state design and performance budget; new journaling/transaction APIs do not provide that automatically. |
 
-P1 cancellation is the next behavioral implementation slice. This review does not
-replace old RPC parameters, add methods to third-party implementation interfaces,
-or change cluster-wide timeout defaults. Those choices require an explicit
-compatibility design and mixed-version tests; the new analyzer provides a baseline
-for that work.
+The implementation adds separate optional cancellation capabilities while retaining
+old RPCs and holder interfaces. Updated silos must precede callers of the new RPCs.
+Cluster-wide timeout defaults remain unchanged. The API baseline and generated RPC
+manifest diff check compatibility; they do not prove arbitrary mixed-version deployment.
 
 ## Version-specific evidence
 

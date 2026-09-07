@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
@@ -12,7 +13,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.FixedWindowRateLimiter)]
-public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimiter, FixedWindowRateLimiterOptions>, IFixedWindowRateLimiterGrain
+public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimiter, FixedWindowRateLimiterOptions>, IFixedWindowRateLimiterGrain, ICancellableRateLimiterGrain<FixedWindowRateLimiterOptions>
 {
     public FixedWindowRateLimiterGrain(
         ILogger<FixedWindowRateLimiterGrain> logger,
@@ -38,6 +39,11 @@ public class FixedWindowRateLimiterGrain : RateLimiterGrain<FixedWindowRateLimit
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, FixedWindowRateLimiterOptions options)
     {
         return await AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions);
+    }
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, FixedWindowRateLimiterOptions options, CancellationToken cancellationToken)
+    {
+        return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
     }
 
     protected override FixedWindowRateLimiter CreateDefaultRateLimiter()

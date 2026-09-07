@@ -30,7 +30,7 @@ public sealed class OrleansRequestRateLimitingMiddleware
     public async Task Invoke(HttpContext httpContext)
     {
         await using var holder = await _orchestrator.CreateLimiterGroupAsync(CreateContext(httpContext), httpContext.RequestAborted);
-        var error = await holder.AcquireAsync();
+        var error = await holder.AcquireAsync(httpContext.RequestAborted);
 
         if (error is null)
         {

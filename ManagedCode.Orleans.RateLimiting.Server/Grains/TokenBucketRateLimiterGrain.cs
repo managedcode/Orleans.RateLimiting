@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
@@ -12,8 +13,10 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.TokenBucketRateLimiter)]
-public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimiter, TokenBucketRateLimiterOptions>, ITokenBucketRateLimiterGrain
+public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimiter, TokenBucketRateLimiterOptions>, ITokenBucketRateLimiterGrain, ICancellableRateLimiterGrain<TokenBucketRateLimiterOptions>
 {
+    private const int NoPermits = 0;
+
     public TokenBucketRateLimiterGrain(
         ILogger<TokenBucketRateLimiterGrain> logger,
         IOptions<TokenBucketRateLimiterOptions> options,
@@ -40,6 +43,11 @@ public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimit
         return await AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions);
     }
 
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, TokenBucketRateLimiterOptions options, CancellationToken cancellationToken)
+    {
+        return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
+    }
+
     protected override TokenBucketRateLimiter CreateDefaultRateLimiter()
     {
         return new TokenBucketRateLimiter(Options);
@@ -55,9 +63,18 @@ public class TokenBucketRateLimiterGrain : RateLimiterGrain<TokenBucketRateLimit
         if (!Options.AutoReplenishment || Options.ReplenishmentPeriod <= TimeSpan.Zero)
             return base.GetRestoredAvailablePermits(savedAtUtc, savedAvailablePermits, nowUtc);
 
-        var replenishedPeriods = (nowUtc - savedAtUtc).Ticks / Options.ReplenishmentPeriod.Ticks;
-        var replenishedPermits = replenishedPeriods * Options.TokensPerPeriod;
-        return (int)Math.Min(PermitLimit, savedAvailablePermits + replenishedPermits);
+        var available = Math.Clamp(savedAvailablePermits, NoPermits, PermitLimit);
+        var elapsed = nowUtc - savedAtUtc;
+        if (elapsed <= TimeSpan.Zero)
+            return available;
+
+        var replenishedPeriods = elapsed.Ticks / Options.ReplenishmentPeriod.Ticks;
+        var missing = PermitLimit - available;
+        // Bound before multiplying: long outages and tiny periods must not overflow.
+        if (replenishedPeriods > missing / Options.TokensPerPeriod)
+            return PermitLimit;
+
+        return available + (int)(replenishedPeriods * Options.TokensPerPeriod);
     }
 
     private bool CheckOptions(TokenBucketRateLimiterOptions options)

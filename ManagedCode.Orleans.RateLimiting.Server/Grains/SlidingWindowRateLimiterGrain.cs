@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
@@ -12,7 +13,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.SlidingWindowRateLimiter)]
-public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain
+public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateLimiter, SlidingWindowRateLimiterOptions>, ISlidingWindowRateLimiterGrain, ICancellableRateLimiterGrain<SlidingWindowRateLimiterOptions>
 {
     public SlidingWindowRateLimiterGrain(
         ILogger<SlidingWindowRateLimiterGrain> logger,
@@ -38,6 +39,11 @@ public class SlidingWindowRateLimiterGrain : RateLimiterGrain<SlidingWindowRateL
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, SlidingWindowRateLimiterOptions options)
     {
         return await AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions);
+    }
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, SlidingWindowRateLimiterOptions options, CancellationToken cancellationToken)
+    {
+        return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
     }
 
     protected override SlidingWindowRateLimiter CreateDefaultRateLimiter()

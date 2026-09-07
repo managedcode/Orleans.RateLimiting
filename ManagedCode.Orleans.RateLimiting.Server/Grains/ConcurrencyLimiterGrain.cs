@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
@@ -11,7 +12,7 @@ using Orleans.Runtime;
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
 [GrainType(RateLimiterGrainTypeNames.ConcurrencyLimiter)]
-public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain
+public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, ConcurrencyLimiterOptions>, IConcurrencyLimiterGrain, ICancellableRateLimiterGrain<ConcurrencyLimiterOptions>
 {
     public ConcurrencyLimiterGrain(
         ILogger<ConcurrencyLimiterGrain> logger,
@@ -34,6 +35,11 @@ public class ConcurrencyLimiterGrain : RateLimiterGrain<ConcurrencyLimiter, Conc
     public async Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, ConcurrencyLimiterOptions options)
     {
         return await AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions);
+    }
+
+    public Task<RateLimitLeaseMetadata> AcquireAndCheckConfigurationAsync(int permitCount, ConcurrencyLimiterOptions options, CancellationToken cancellationToken)
+    {
+        return AcquireAndCheckConfigurationAsync(permitCount, options, CheckOptions, cancellationToken);
     }
 
     protected override ConcurrencyLimiter CreateDefaultRateLimiter()

@@ -6,7 +6,7 @@ using Orleans;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 
-public abstract class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWithConfiguration<TOption>
+public abstract partial class BaseRateLimiterHolder<TGrain, TOption> : ILimiterHolderWithConfiguration<TOption>, ICancellableLimiterHolder
     where TGrain : IRateLimiterGrainWithConfiguration<TOption>
     where TOption : class
 {

@@ -158,3 +158,14 @@ Versioning analyzers as build errors. No RPC identities change when enabling thi
 guard. Packing also compares public .NET APIs against published 10.1.0, and CI
 runs this validation before tests. See the [current modernization review](ModernizationReview-2026-09.md) for
 native cancellation, test-clock isolation, persistence, and observability priorities.
+
+## Cancellation and diagnostics
+
+HTTP request and SignalR connection cancellation flows through optional holder and
+grain capabilities into native limiter queues. Original RPCs remain available.
+Partial groups release owned concurrency leases even when cancellation arrives late.
+Storage timer/shutdown writes receive cancellation tokens, failed writes remain dirty,
+and failed clears preserve the runtime limiter. Snapshot time uses the activation's
+`TimeProvider`. Metrics expose bounded algorithm/outcome tags and an aggregate active
+concurrency-permit count. See [cancellation and observability](CancellationAndObservability.md)
+for the sequence diagram, deployment order, metric names and test boundaries.

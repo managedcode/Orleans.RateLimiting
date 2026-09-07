@@ -39,7 +39,7 @@ public abstract class OrleansBaseRateLimitingMiddleware
 
         AddLimiters(httpContext, holder);
 
-        var error = await holder.AcquireAsync();
+        var error = await holder.AcquireAsync(httpContext.RequestAborted);
         if (error is null)
         {
             await _next(httpContext);

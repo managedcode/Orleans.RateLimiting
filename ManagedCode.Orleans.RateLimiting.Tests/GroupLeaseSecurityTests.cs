@@ -142,6 +142,22 @@ public class GroupLeaseSecurityTests(TestClusterApplication testApp)
         (await limiter.GetStatisticsAsync())!.CurrentAvailablePermits.ShouldBe(PermitLimit);
     }
 
+    [Test]
+    public async Task CancellationAfterLegacyHolderAcquiresReleasesTheLateLease()
+    {
+        var limiter = CreateLimiter();
+        var gated = new GatedHolder(limiter);
+        await using var group = new GroupLimiterHolder();
+        group.AddLimiter(gated);
+        using var cancellation = new CancellationTokenSource();
+        var acquisition = group.AcquireAsync(cancellation.Token);
+        await gated.Acquired.Task;
+        await cancellation.CancelAsync();
+        gated.Continue.TrySetResult();
+        await Should.ThrowAsync<OperationCanceledException>(() => acquisition);
+        (await limiter.GetStatisticsAsync())!.CurrentAvailablePermits.ShouldBe(PermitLimit);
+    }
+
     private ConcurrencyLimiterHolder CreateLimiter() => testApp.Cluster.Client.GetConcurrencyLimiter(Guid.NewGuid().ToString(),
         new ConcurrencyLimiterOptions { PermitLimit = PermitLimit, QueueLimit = QueueLimit });
 

@@ -219,3 +219,18 @@ revision, and a shell-shaped tag passed literally through the environment. No
 publishing step was executed. GitHub reported zero open Dependabot alerts.
 The remaining CodeQL alert is corrected in source; default-branch alert status
 will only update after this branch is integrated and analyzed there.
+
+## Modernization follow-up: cancellation and persistence boundaries
+
+| ID | Confirmed issue | Correction |
+| --- | --- | --- |
+| SEC-13 | Queued limiter requests could continue after HTTP abort or SignalR disconnect because acquisition had no cancellation path. | Add optional cancellable RPC/holder capabilities, forward request/connection tokens through group ownership and grain locks into native queues, and release partial/late concurrency leases. Real HTTP, SignalR and four-algorithm queue tests verify cancellation and retained capacity. |
+| SEC-14 | A failed persistent-state clear disposed the active limiter before storage confirmed deletion. | Clear storage before replacing the runtime, and mark state deleted only after success. An injected clear failure preserves state and active quota. |
+| SEC-15 | Token-bucket snapshot restoration could overflow after a long outage or subtract permits when UTC moved backwards. | Clamp saved quota, ignore backwards elapsed time, and bound replenishment before multiplication. Deterministic boundary tests cover both failures and exact partial replenishment. |
+
+A controlled return to the previous clear/restoration logic failed all three targeted
+regression tests; the corrected implementation passes them. Dirty-state retry is
+also exercised through an actual Orleans grain timer, a real memory provider with
+an injected write failure, and an isolated controllable grain clock. Shutdown
+cancellation is verified with a cancellable persistent-state test double.
+See [implementation details and deployment order](CancellationAndObservability.md).

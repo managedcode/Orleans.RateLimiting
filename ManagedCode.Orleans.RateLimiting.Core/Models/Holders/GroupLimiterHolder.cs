@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Models.Holders;
 
 public class GroupLimiterHolder : IAsyncDisposable
 {
+    private const int DefaultPermitCount = 1;
     private const string AlreadyAcquiredMessage = "A limiter group can only be acquired once before it is disposed.";
 
     private readonly List<LimiterEntry> _holders = [];
@@ -48,7 +50,9 @@ public class GroupLimiterHolder : IAsyncDisposable
         }
     }
 
-    public async Task<OrleansRateLimitLease?> AcquireAsync()
+    public Task<OrleansRateLimitLease?> AcquireAsync() => AcquireAsync(CancellationToken.None);
+
+    public async Task<OrleansRateLimitLease?> AcquireAsync(CancellationToken cancellationToken)
     {
         Task<OrleansRateLimitLease?> acquisition;
         lock (_lifecycleSync)
@@ -59,26 +63,32 @@ public class GroupLimiterHolder : IAsyncDisposable
 
             // Reserve the group before the first asynchronous grain response can arrive.
             _acquired = true;
-            acquisition = _acquisition = AcquireCoreAsync();
+            acquisition = _acquisition = AcquireCoreAsync(cancellationToken);
         }
         return await acquisition;
     }
 
-    private async Task<OrleansRateLimitLease?> AcquireCoreAsync()
+    private async Task<OrleansRateLimitLease?> AcquireCoreAsync(CancellationToken cancellationToken)
     {
         try
         {
             for (var index = 0; index < _holders.Count; index++)
             {
                 var entry = _holders[index];
-                var lease = await entry.Holder.AcquireAndConfigureAsync();
+                cancellationToken.ThrowIfCancellationRequested();
+                var lease = cancellationToken.CanBeCanceled && entry.Holder is ICancellableLimiterHolder cancellable
+                    ? await cancellable.AcquireAndConfigureAsync(DefaultPermitCount, cancellationToken)
+                    : await entry.Holder.AcquireAndConfigureAsync();
+                // Retain ownership before checking cancellation, including legacy holders.
+                _holders[index] = entry with { Lease = lease };
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!lease.IsAcquired)
                 {
                     await ReleaseAcquiredAsync();
                     return lease;
                 }
-                _holders[index] = entry with { Lease = lease };
             }
+            cancellationToken.ThrowIfCancellationRequested();
             return null;
         }
         catch
