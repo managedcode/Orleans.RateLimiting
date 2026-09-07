@@ -81,6 +81,6 @@ public class SignalRSecurityTests(TestClusterApplication testApp)
 
     public sealed class SecurityHub : Hub
     {
-        public bool Protected() => true;
+        public bool Protected() => !Context.ConnectionAborted.IsCancellationRequested;
     }
 }

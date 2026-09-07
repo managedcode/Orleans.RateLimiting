@@ -45,8 +45,13 @@ jobs:
       - name: Test
         run: dotnet test --solution ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build --verbosity normal --report-trx --results-directory ./artifacts/test-results
 
+      - name: Map deterministic coverage source paths
+        run: |
+          mkdir -p artifacts/coverage
+          printf '|%s/=/_/\n' "$GITHUB_WORKSPACE" > artifacts/coverage/SourceRootsMapping.txt
+
       - name: Collect coverage
-        run: dotnet tool run coverlet ManagedCode.Orleans.RateLimiting.Tests/bin/Release/net10.0/ManagedCode.Orleans.RateLimiting.Tests.dll --target "dotnet" --targetargs "test --project ManagedCode.Orleans.RateLimiting.Tests/ManagedCode.Orleans.RateLimiting.Tests.csproj --configuration Release --no-build --no-restore" --format cobertura --output artifacts/coverage/coverage.cobertura.xml --exclude "[ManagedCode.Orleans.RateLimiting.Tests]*" --threshold 85 --threshold-type line --threshold-stat total
+        run: dotnet tool run coverlet ManagedCode.Orleans.RateLimiting.Tests/bin/Release/net10.0/ManagedCode.Orleans.RateLimiting.Tests.dll --target "dotnet" --targetargs "test --project ManagedCode.Orleans.RateLimiting.Tests/ManagedCode.Orleans.RateLimiting.Tests.csproj --configuration Release --no-build --no-restore" --source-mapping-file artifacts/coverage/SourceRootsMapping.txt --format cobertura --output artifacts/coverage/coverage.cobertura.xml --exclude "[ManagedCode.Orleans.RateLimiting.Tests]*" --threshold 85 --threshold-type line --threshold-stat total
 
       - name: Render coverage report
         run: dotnet tool run reportgenerator -reports:"artifacts/coverage/coverage.cobertura.xml" -targetdir:"artifacts/coverage-report" -reporttypes:"HtmlSummary;MarkdownSummaryGithub"

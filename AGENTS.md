@@ -69,6 +69,7 @@ Skill-management rules:
 - `format`: `dotnet format ManagedCode.Orleans.RateLimiting.sln --verify-no-changes`
 - `test`: `dotnet test --solution ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build --verbosity normal`
 - `coverage`: `dotnet tool restore` then `dotnet tool run coverlet ManagedCode.Orleans.RateLimiting.Tests/bin/Release/net10.0/ManagedCode.Orleans.RateLimiting.Tests.dll --target "dotnet" --targetargs "test --project ManagedCode.Orleans.RateLimiting.Tests/ManagedCode.Orleans.RateLimiting.Tests.csproj --configuration Release --no-build --no-restore" --format cobertura --output artifacts/coverage/coverage.cobertura.xml --exclude "[ManagedCode.Orleans.RateLimiting.Tests]*" --threshold 85 --threshold-type line --threshold-stat total`
+- CI coverage: deterministic builds map source paths to `/_/`; generate `artifacts/coverage/SourceRootsMapping.txt` with `|<checkout-root>/=/_/` and pass `--source-mapping-file artifacts/coverage/SourceRootsMapping.txt` to the coverage command. Keep the 85% threshold and source inclusion unchanged.
 - `coverage-report`: `dotnet tool run reportgenerator -reports:"artifacts/coverage/coverage.cobertura.xml" -targetdir:"artifacts/coverage-report" -reporttypes:"HtmlSummary;MarkdownSummaryGithub"`
 - `pack`: `dotnet pack ManagedCode.Orleans.RateLimiting.sln --configuration Release --no-build`
 

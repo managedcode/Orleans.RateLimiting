@@ -102,4 +102,15 @@ Commands are the root AGENTS.md commands. Focused tests additionally use
 `--treenode-filter '/*/*/*SecurityTests/*'`. Source review and fixes used the
 Orleans skill; package/tool updates used project-setup; formatting followed format;
 quality-ci/complexity guidance was applied without adding or lowering quality gates.
-No remaining local verification failures.
+CI initially passed both full test runs but produced an empty coverage report
+because deterministic PDB paths use `/_/`. The same behavior was reproduced
+locally with `-p:ContinuousIntegrationBuild=true`. The workflow now passes a
+source-root mapping to Coverlet, as documented in its
+[path mapping guide](https://github.com/coverlet-coverage/coverlet/blob/master/Documentation/GlobalTool.md#path-mappings),
+so instrumentation resolves the actual checkout without changing exclusions or
+the coverage gate. A focused deterministic build verified all 17 security cases
+and produced coverage for all three production modules. The SignalR test endpoint
+also reads the live connection state to satisfy CA1822 while remaining an instance
+hub method. The complete deterministic-build coverage run then passed all 89
+tests and measured the same 92.17% line coverage. No remaining local verification
+failures.
