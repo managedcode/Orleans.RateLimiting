@@ -429,6 +429,8 @@ The built-in hub filter uses a named SignalR policy by default, so hub rules do 
 
 ## Development
 
+Code scanning uses GitHub-managed CodeQL Default Setup for C#, GitHub Actions, and Python. This is the single analysis configuration: an additional CodeQL workflow cannot upload results while Default Setup is enabled. See [GitHub code scanning setup types](https://docs.github.com/en/code-security/concepts/code-scanning/setup-types).
+
 This repository targets .NET 10 with central package management.
 
 ```sh
