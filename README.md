@@ -1,14 +1,24 @@
 # ManagedCode.Orleans.RateLimiting
 
+[![CI](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/ci.yml)
+[![Release](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/managedcode/Orleans.RateLimiting/actions/workflows/release.yml)
+[![NuGet](https://img.shields.io/nuget/v/ManagedCode.Orleans.RateLimiting.Server.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Server)
+[![Downloads](https://img.shields.io/nuget/dt/ManagedCode.Orleans.RateLimiting.Server.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Server)
+[![License](https://img.shields.io/github/license/managedcode/Orleans.RateLimiting.svg?style=flat-square)](LICENSE)
+
 Distributed rate limiting for Microsoft Orleans applications.
 
 The library wraps `System.Threading.RateLimiting` behind Orleans grains so the same limiter can be shared across silos, HTTP middleware, SignalR hubs, and grain calls.
 
 ## Packages
 
-- `ManagedCode.Orleans.RateLimiting.Core` — shared grain contracts, attributes, options, leases, and Orleans serializers.
-- `ManagedCode.Orleans.RateLimiting.Server` — Orleans grain implementations, incoming grain call filters, and silo registration helpers.
-- `ManagedCode.Orleans.RateLimiting.Client` — Orleans client, ASP.NET Core middleware, SignalR, and HTTP attribute integration.
+Package links open the latest stable release on NuGet; badges update automatically.
+
+| Package | Latest version | Downloads | Description |
+| --- | --- | --- | --- |
+| [ManagedCode.Orleans.RateLimiting.Core](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Core) | [![NuGet](https://img.shields.io/nuget/v/ManagedCode.Orleans.RateLimiting.Core.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Core) | [![Downloads](https://img.shields.io/nuget/dt/ManagedCode.Orleans.RateLimiting.Core.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Core) | shared grain contracts, attributes, options, leases, and Orleans serializers. |
+| [ManagedCode.Orleans.RateLimiting.Server](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Server) | [![NuGet](https://img.shields.io/nuget/v/ManagedCode.Orleans.RateLimiting.Server.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Server) | [![Downloads](https://img.shields.io/nuget/dt/ManagedCode.Orleans.RateLimiting.Server.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Server) | Orleans grain implementations, incoming grain call filters, and silo registration helpers. |
+| [ManagedCode.Orleans.RateLimiting.Client](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Client) | [![NuGet](https://img.shields.io/nuget/v/ManagedCode.Orleans.RateLimiting.Client.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Client) | [![Downloads](https://img.shields.io/nuget/dt/ManagedCode.Orleans.RateLimiting.Client.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/ManagedCode.Orleans.RateLimiting.Client) | Orleans client, ASP.NET Core middleware, SignalR, and HTTP attribute integration. |
 
 ## Features
 
@@ -269,7 +279,7 @@ public class TestFixedWindowRateLimiterGrain : Grain, ITestFixedWindowRateLimite
 }
 ```
 
-### Grain attribute policy safety (10.2.0)
+### Grain attribute policy safety
 
 Grain filters honor attributes on implementation methods, then interface methods,
 then the implementation class. Explicit key partitions require a non-empty key;
@@ -334,7 +344,7 @@ app.UseOrleansUserRateLimiting();
 app.MapControllers();
 ```
 
-### Cancellation and metrics (10.2.0)
+### Cancellation and metrics
 
 HTTP middleware propagates `RequestAborted`; SignalR propagates `ConnectionAborted`.
 Queued requests are cancelled in Orleans and the native limiter, and partial groups
@@ -351,7 +361,7 @@ Subscribe to meter `ManagedCode.Orleans.RateLimiting` for acquisition outcomes/d
 active concurrency permits, and storage writes/durations. Metric tags contain no
 partition identities. See [cancellation, metrics and persistence details](docs/CancellationAndObservability.md).
 
-### Client IPs and trusted proxies (10.2.0)
+### Client IPs and trusted proxies
 
 HTTP middleware and SignalR use `HttpContext.Connection.RemoteIpAddress`. Raw
 `X-Forwarded-For`, `X-Real-IP`, and `REMOTE_ADDR` headers do not select rate-limit
