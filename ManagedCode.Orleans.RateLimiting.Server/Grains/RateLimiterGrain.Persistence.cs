@@ -154,9 +154,27 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         RateLimiter.AttemptAcquire(consumedPermits).Dispose();
     }
 
-    private static void RemoveActiveLeaseState(RateLimiterGrainState<TOptions> state, Guid leaseId)
+    private async Task PersistReleasedLeaseAsync(Guid leaseId)
     {
-        state.ActiveLeases.RemoveAll(lease => lease.LeaseId == leaseId);
+        await _stateLock.WaitAsync();
+        try
+        {
+            var state = _state.State;
+            if (RemoveActiveLeaseState(state, leaseId) == default)
+                return;
+
+            CaptureRuntimeSnapshot(state);
+            MarkStateDirty();
+        }
+        finally
+        {
+            _stateLock.Release();
+        }
+    }
+
+    private static int RemoveActiveLeaseState(RateLimiterGrainState<TOptions> state, Guid leaseId)
+    {
+        return state.ActiveLeases.RemoveAll(lease => lease.LeaseId == leaseId);
     }
 
     private void ResetQuotaState(RateLimiterGrainState<TOptions> state)
@@ -188,8 +206,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         try
         {
             update(_state.State);
-            _stateDeleted = false;
-            _stateDirty = true;
+            MarkStateDirty();
 
             if (flushImmediately)
                 await FlushStateIfDirtyLockedAsync(cancellationToken);
@@ -198,6 +215,12 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         {
             _stateLock.Release();
         }
+    }
+
+    private void MarkStateDirty()
+    {
+        _stateDeleted = false;
+        _stateDirty = true;
     }
 
     private void RegisterStateFlushTimer()

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Client.Extensions;
+using ManagedCode.Orleans.RateLimiting.Client.Options;
 using ManagedCode.Orleans.RateLimiting.Core.Extensions;
 using ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
@@ -44,7 +45,18 @@ public class SignalRSecurityTests(TestClusterApplication testApp)
         await Should.ThrowAsync<HubException>(() => second.InvokeAsync<bool>(nameof(SecurityHub.Protected)));
     }
 
-    private IHost CreateHost(bool missingAddress)
+    [Test]
+    public async Task ConfigureCallbackAndFilterUseTheSamePolicy()
+    {
+        using var host = CreateHost(missingAddress: false, options => options.PolicyName = Guid.NewGuid().ToString());
+        await using var connection = CreateConnection(host.GetTestServer(), FirstSpoofedIp);
+        await connection.StartAsync();
+
+        (await connection.InvokeAsync<bool>(nameof(SecurityHub.Protected))).ShouldBeTrue();
+        await Should.ThrowAsync<HubException>(() => connection.InvokeAsync<bool>(nameof(SecurityHub.Protected)));
+    }
+
+    private IHost CreateHost(bool missingAddress, Action<SignalRRateLimitingOptions>? configure = null)
     {
         var configurationName = Guid.NewGuid().ToString();
         return new HostBuilder().ConfigureWebHost(web => web.UseTestServer().ConfigureServices(services =>
@@ -57,7 +69,16 @@ public class SignalRSecurityTests(TestClusterApplication testApp)
                 QueueLimit = QueueLimit,
                 Window = TimeSpan.FromMinutes(WindowMinutes)
             });
-            services.AddSignalR().AddOrleansRateLimiting(configurationName, RateLimitPartitionKind.IpAddress);
+            var signalR = services.AddSignalR();
+            if (configure is null)
+                signalR.AddOrleansRateLimiting(configurationName, RateLimitPartitionKind.IpAddress);
+            else
+                signalR.AddOrleansRateLimiting(options =>
+                {
+                    options.ConfigurationName = configurationName;
+                    options.PartitionKind = RateLimitPartitionKind.IpAddress;
+                    configure(options);
+                });
         }).Configure(app =>
         {
             app.Use((context, next) =>

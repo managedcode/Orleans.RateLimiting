@@ -32,10 +32,20 @@ public static class SignalRServerBuilderExtensions
     {
         var signalROptions = new SignalRRateLimitingOptions();
         configure(signalROptions);
+        var policyName = signalROptions.PolicyName;
+        var partitionKind = signalROptions.PartitionKind;
+        var configurationName = signalROptions.ConfigurationName;
+        var anonymousUserKey = signalROptions.AnonymousUserKey;
 
         builder.Services.AddOrleansRateLimiting(options =>
-            options.AddToPolicy(signalROptions.PolicyName, signalROptions.PartitionKind, signalROptions.ConfigurationName, required: true));
-        builder.Services.Configure(configure);
+            options.AddToPolicy(policyName, partitionKind, configurationName, required: true));
+        builder.Services.Configure<SignalRRateLimitingOptions>(options =>
+        {
+            options.PolicyName = policyName;
+            options.PartitionKind = partitionKind;
+            options.ConfigurationName = configurationName;
+            options.AnonymousUserKey = anonymousUserKey;
+        });
         builder.Services.TryAddSingleton<RateLimitingHubFilter>();
         builder.Services.Configure<HubOptions>(options => options.AddFilter<RateLimitingHubFilter>());
         return builder;

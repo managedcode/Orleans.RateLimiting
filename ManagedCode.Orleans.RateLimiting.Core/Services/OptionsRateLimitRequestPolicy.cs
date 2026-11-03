@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
@@ -22,8 +22,15 @@ public sealed class OptionsRateLimitRequestPolicy : IRateLimitRequestPolicy
     {
         cancellationToken.ThrowIfCancellationRequested();
         var policyName = NormalizePolicyName(context.PolicyName);
-        var rules = _options.Value.Rules.Where(rule => NormalizePolicyName(rule.PolicyName) == policyName).ToArray();
-        return ValueTask.FromResult<IReadOnlyList<RateLimitRequestRule>>(rules);
+        var configuredRules = _options.Value.Rules;
+        List<RateLimitRequestRule>? matches = null;
+        for (var index = default(int); index < configuredRules.Count; index++)
+        {
+            var rule = configuredRules[index];
+            if (NormalizePolicyName(rule.PolicyName) == policyName)
+                (matches ??= []).Add(rule);
+        }
+        return ValueTask.FromResult<IReadOnlyList<RateLimitRequestRule>>(matches is null ? Array.Empty<RateLimitRequestRule>() : matches);
     }
 
     private static string NormalizePolicyName(string? policyName)

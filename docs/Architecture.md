@@ -140,7 +140,7 @@ fail before endpoint execution. See [security review and migration](SecurityRevi
 - Named policies include configuration identity in their keys. Built-in inline
   policies include all limiter options, so different settings cannot reset each
   other's runtime limiter; identical settings still share the selected partition.
-- A limiter group reserves acquisition ownership before awaiting a grain. Partial
+- A limiter group reserves acquisition ownership before invoking a holder. Partial
   acquisition rolls back on rejection or exception. Disposal waits for any pending
   acquisition before releasing leases, and concurrent disposal callers await the
   same completion. Configure group membership before acquiring.
@@ -149,7 +149,8 @@ fail before endpoint execution. See [security review and migration](SecurityRevi
 
 - Configuration replacement validates a candidate limiter and requested permit count
   before disposing the current runtime limiter. Invalid input preserves its options,
-  quota, and active leases; the existing synchronous subclass factory remains supported.
+  quota, and active leases. Reset and delete also validate the replacement before
+  disposing the current limiter or clearing persistent state.
 
 ## Platform modernization
 

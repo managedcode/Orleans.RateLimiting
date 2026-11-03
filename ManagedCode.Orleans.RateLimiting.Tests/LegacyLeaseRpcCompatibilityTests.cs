@@ -4,8 +4,8 @@ using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests;
 
-[ClassDataSource<TimeoutTestCluster>(Shared = SharedType.PerTestSession)]
-public class LegacyLeaseRpcCompatibilityTests(TimeoutTestCluster app)
+[ClassDataSource<TestClusterApplication>(Shared = SharedType.PerTestSession)]
+public class LegacyLeaseRpcCompatibilityTests(TestClusterApplication app)
 {
     private const int PermitLimit = 2;
     private const int PermitCount = 1;

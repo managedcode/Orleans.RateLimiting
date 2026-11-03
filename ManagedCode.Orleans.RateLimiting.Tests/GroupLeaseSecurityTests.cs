@@ -76,6 +76,31 @@ public class GroupLeaseSecurityTests(TestClusterApplication testApp)
     }
 
     [Test]
+    public async Task DisposeFromHolderWaitsUntilItsLeaseIsReleased()
+    {
+        var limiter = CreateLimiter();
+        await using var group = new GroupLimiterHolder();
+        Task? disposal = null;
+        var gated = new GatedHolder(limiter, () => disposal = group.DisposeAsync().AsTask());
+        group.AddLimiter(gated);
+
+        var acquisition = group.AcquireAsync();
+        await gated.Acquired.Task;
+        var pendingDisposal = disposal.ShouldNotBeNull();
+        try
+        {
+            pendingDisposal.IsCompleted.ShouldBeFalse();
+        }
+        finally
+        {
+            gated.Continue.TrySetResult();
+            await acquisition;
+            await pendingDisposal;
+        }
+        (await limiter.GetStatisticsAsync())!.CurrentAvailablePermits.ShouldBe(PermitLimit);
+    }
+
+    [Test]
     public async Task GroupCannotBeMutatedDuringAcquisition()
     {
         var gated = new GatedHolder(CreateLimiter());
@@ -168,13 +193,14 @@ public class GroupLeaseSecurityTests(TestClusterApplication testApp)
     }
 
     // Delays delivery of a real Orleans lease to deterministically expose lifecycle races.
-    private sealed class GatedHolder(ILimiterHolder inner) : ILimiterHolder
+    private sealed class GatedHolder(ILimiterHolder inner, Action? beforeAcquire = null) : ILimiterHolder
     {
         public TaskCompletionSource Acquired { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Continue { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<OrleansRateLimitLease> AcquireAsync(int permitCount = SecurityGrainOptions.StrictPermits) => inner.AcquireAsync(permitCount);
         public async Task<OrleansRateLimitLease> AcquireAndConfigureAsync(int permitCount = SecurityGrainOptions.StrictPermits)
         {
+            beforeAcquire?.Invoke();
             var lease = await inner.AcquireAndConfigureAsync(permitCount);
             Acquired.TrySetResult();
             await Continue.Task;

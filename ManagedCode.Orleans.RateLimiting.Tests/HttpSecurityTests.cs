@@ -32,6 +32,8 @@ public class HttpSecurityTests(TestClusterApplication testApp)
     private const string AuthenticationType = "security-test";
     private const string UserId = "security-user";
     private const string Role = "security-role";
+    private const string SecurityHeader = "X-Content-Type-Options";
+    private const string SecurityHeaderValue = "nosniff";
     private const string IpMode = "ip";
     private const string AnonymousMode = "anonymous";
     private const string AuthorizedMode = "authorized";
@@ -57,6 +59,24 @@ public class HttpSecurityTests(TestClusterApplication testApp)
             (await SendAsync(client, header, SecondIp)).ShouldBe(HttpStatusCode.TooManyRequests);
             (await SendAsync(client, header, ForwardedChain)).ShouldBe(HttpStatusCode.TooManyRequests);
         }
+    }
+
+    [Test]
+    [Arguments(IpMode)]
+    [Arguments(OrchestrationMode)]
+    public async Task RateLimitedResponsePreservesSecurityHeadersAndRetryDelay(string mode)
+    {
+        using var host = CreateHost(mode);
+        using var client = host.GetTestClient();
+        using var accepted = await client.GetAsync(Path);
+        accepted.StatusCode.ShouldBe(HttpStatusCode.OK);
+        accepted.Headers.GetValues(SecurityHeader).ShouldContain(SecurityHeaderValue);
+
+        using var rejected = await client.GetAsync(Path);
+        rejected.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        rejected.Headers.GetValues(SecurityHeader).ShouldContain(SecurityHeaderValue);
+        var retryAfter = rejected.Headers.RetryAfter.ShouldNotBeNull();
+        retryAfter.Delta.ShouldBe(TimeSpan.FromMinutes(WindowMinutes));
     }
 
     [Test]
@@ -124,6 +144,7 @@ public class HttpSecurityTests(TestClusterApplication testApp)
         {
             app.Use((context, next) =>
             {
+                context.Response.Headers[SecurityHeader] = SecurityHeaderValue;
                 context.Connection.RemoteIpAddress = missingAddress ? null : IPAddress.Parse(PeerIp);
                 if (mode is AuthorizedMode or RoleMode)
                     context.User = new ClaimsPrincipal(new ClaimsIdentity(

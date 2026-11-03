@@ -1,5 +1,6 @@
 using ManagedCode.Orleans.RateLimiting.Core.Exceptions;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
+using ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster.Grains.Interfaces;
 
 namespace ManagedCode.Orleans.RateLimiting.Tests;
@@ -66,6 +67,14 @@ public class GrainFilterSecurityTests(TestClusterApplication testApp)
     public async Task InterfaceMethodConcurrencyAttributeIsEnforced()
     {
         await Should.ThrowAsync<RateLimitExceededException>(() => CreateGrain().InterfaceConcurrency());
+    }
+
+    [Test]
+    public async Task GrainClassPolicyProtectsInheritedImplementationMethods()
+    {
+        var grain = testApp.Cluster.Client.GetGrain<IInheritedPolicyTestGrain>(Guid.NewGuid().ToString());
+        await grain.PingAsync();
+        await Should.ThrowAsync<RateLimitExceededException>(() => grain.PingAsync());
     }
 
     [Test]

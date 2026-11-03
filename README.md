@@ -347,6 +347,7 @@ app.MapControllers();
 ### Cancellation and metrics
 
 HTTP middleware propagates `RequestAborted`; SignalR propagates `ConnectionAborted`.
+When a limiter supplies a positive retry delay, HTTP 429 responses include `Retry-After` in whole seconds, rounded up.
 Queued requests are cancelled in Orleans and the native limiter, and partial groups
 release concurrency leases. Direct holders also accept a token:
 
@@ -436,6 +437,7 @@ builder.Services
 ```
 
 The built-in hub filter uses a named SignalR policy by default, so hub rules do not bleed into HTTP request middleware rules. It builds a `RateLimitRequestContext` from hub method name, user identifier, claims, IP address, and hub resource name.
+The configuration callback overload applies one set of values to both the rule and the hub filter.
 
 ## Development
 

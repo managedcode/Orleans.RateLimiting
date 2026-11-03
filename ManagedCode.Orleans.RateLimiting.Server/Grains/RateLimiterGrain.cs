@@ -102,14 +102,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         if (_rateLimitLeases.TryRemove(leaseId, out var lease))
             DisposeTrackedLease(lease);
 
-        if (!TracksActiveLeaseState)
-            return;
-
-        await MutateStateAsync(state =>
-        {
-            RemoveActiveLeaseState(state, leaseId);
-            CaptureRuntimeSnapshot(state);
-        });
+        if (TracksActiveLeaseState)
+            await PersistReleasedLeaseAsync(leaseId);
     }
 
     public ValueTask<RateLimiterStatistics?> GetStatisticsAsync()
@@ -146,8 +140,9 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         try
         {
             await WaitForActiveAcquiresAsync();
+            var replacement = CreateValidatedReplacement(_options, permitCount: null);
             DisposeRateLimiter();
-            RateLimiter = CreateDefaultRateLimiter();
+            RateLimiter = replacement;
             await MutateStateAsync(ResetQuotaState, flushImmediately: true);
         }
         finally
@@ -162,10 +157,20 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
         try
         {
             await WaitForActiveAcquiresAsync();
-            await ClearStoredStateAsync();
+            var replacement = CreateValidatedReplacement(_defaultOptions, permitCount: null);
+            try
+            {
+                await ClearStoredStateAsync();
+            }
+            catch
+            {
+                replacement.Dispose();
+                throw;
+            }
+
             DisposeRateLimiter();
             _options = _defaultOptions;
-            RateLimiter = CreateDefaultRateLimiter();
+            RateLimiter = replacement;
         }
         finally
         {

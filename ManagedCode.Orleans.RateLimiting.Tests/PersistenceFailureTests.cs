@@ -10,6 +10,7 @@ namespace ManagedCode.Orleans.RateLimiting.Tests;
 
 public class PersistenceFailureTests
 {
+    private const string ReplacementFailure = "Injected limiter replacement failure";
     private const int TestPermitLimit = 1;
     private const int NoPermits = 0;
     private const int ExpectedWrites = 2;
@@ -28,6 +29,41 @@ public class PersistenceFailureTests
         (await grain.GetStatisticsAsync())!.CurrentAvailablePermits.ShouldBe(NoPermits);
         lease.Dispose();
         (await grain.GetStatisticsAsync())!.CurrentAvailablePermits.ShouldBe(TestPermitLimit);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task FailedReplacementPreservesQuotaAndState(bool deleteState)
+    {
+        var state = new FaultingPersistentState<ConcurrencyLimiterOptions>();
+        using var grain = new TestConcurrencyGrain(state);
+        using var held = grain.TakePermit();
+        var originalState = state.State;
+        grain.FailReplacement = true;
+
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            deleteState ? grain.DeleteStateAsync().AsTask() : grain.ResetAsync().AsTask());
+
+        state.State.ShouldBeSameAs(originalState);
+        using var rejected = grain.TakePermit();
+        rejected.IsAcquired.ShouldBeFalse();
+        held.Dispose();
+        (await grain.GetStatisticsAsync())!.CurrentAvailablePermits.ShouldBe(TestPermitLimit);
+    }
+
+    [Test]
+    public async Task StaleReleaseAfterDeleteDoesNotRecreateSnapshot()
+    {
+        var state = new FaultingPersistentState<ConcurrencyLimiterOptions>();
+        using var grain = new TestConcurrencyGrain(state);
+
+        await grain.DeleteStateAsync();
+        await grain.ReleaseLease(Guid.NewGuid());
+        await grain.OnDeactivateAsync(default, CancellationToken.None);
+
+        state.Writes.ShouldBe(NoPermits);
+        state.State.HasSnapshot.ShouldBeFalse();
     }
 
     [Test]
@@ -62,6 +98,16 @@ public class PersistenceFailureTests
             OptionsFactory.Create(new ConcurrencyLimiterOptions { PermitLimit = TestPermitLimit }),
             OptionsFactory.Create(new RateLimiterPersistenceOptions { StateFlushPeriod = TimeSpan.Zero }), state)
     {
+        public bool FailReplacement { get; set; }
+
+        protected override ConcurrencyLimiter CreateDefaultRateLimiter()
+        {
+            if (FailReplacement)
+                throw new InvalidOperationException(ReplacementFailure);
+
+            return base.CreateDefaultRateLimiter();
+        }
+
         public RateLimitLease TakePermit() => RateLimiter.AttemptAcquire(TestPermitLimit);
     }
 }

@@ -52,9 +52,10 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
         if (context.InterfaceMethod is { } interfaceMethod && Attribute.IsDefined(interfaceMethod, typeof(TAttribute)))
             return CreateRateLimiter(context, Attribute.GetCustomAttribute(interfaceMethod, typeof(TAttribute)));
 
-        if (context.ImplementationMethod.DeclaringType != null && Attribute.IsDefined(context.ImplementationMethod.DeclaringType, typeof(TAttribute)))
+        var grainType = context.Grain?.GetType() ?? context.ImplementationMethod.DeclaringType;
+        if (grainType is not null && Attribute.IsDefined(grainType, typeof(TAttribute)))
         {
-            var attribute = Attribute.GetCustomAttribute(context.ImplementationMethod.DeclaringType, typeof(TAttribute));
+            var attribute = Attribute.GetCustomAttribute(grainType, typeof(TAttribute));
             return CreateRateLimiter(context, attribute);
         }
 

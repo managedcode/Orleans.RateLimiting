@@ -38,6 +38,9 @@ internal static class RateLimiterMetrics
 
     internal static void RecordAcquisition<TLimiter>(string outcome, long started)
     {
+        if (!Acquisitions.Enabled && !AcquisitionDuration.Enabled)
+            return;
+
         var tags = CreateTags<TLimiter>(outcome);
         Acquisitions.Add(SingleEvent, tags);
         AcquisitionDuration.Record(Stopwatch.GetElapsedTime(started).TotalSeconds, tags);

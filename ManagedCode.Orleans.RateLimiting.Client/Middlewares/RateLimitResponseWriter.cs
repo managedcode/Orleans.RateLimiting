@@ -1,5 +1,6 @@
-using System.Threading.Tasks;
+using System;
 using System.Globalization;
+using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
 using Microsoft.AspNetCore.Http;
 
@@ -9,16 +10,25 @@ internal static class RateLimitResponseWriter
 {
     public static async Task WriteTooManyRequestsAsync(HttpContext httpContext, OrleansRateLimitLease lease)
     {
-        if (httpContext.Response.HasStarted)
+        var response = httpContext.Response;
+        if (response.HasStarted)
             return;
 
-        httpContext.Response.Clear();
-        httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        await httpContext.Response.WriteAsJsonAsync(new RateLimitRejectedResponse(
+        // Replace the response body without removing headers set by the host.
+        response.ContentLength = null;
+        if (response.Body.CanSeek)
+            response.Body.SetLength(default);
+
+        response.StatusCode = StatusCodes.Status429TooManyRequests;
+        var retryAfter = lease.RetryAfter;
+        if (retryAfter > TimeSpan.Zero)
+            response.Headers.RetryAfter = ((long)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+
+        await response.WriteAsJsonAsync(new RateLimitRejectedResponse(
             StatusCodes.Status429TooManyRequests,
             RateLimitMiddlewareConstants.TooManyRequestsError,
             lease.Reason,
-            lease.RetryAfter.ToString(RateLimitMiddlewareConstants.RetryAfterTimeSpanFormat, CultureInfo.InvariantCulture)));
+            retryAfter.ToString(RateLimitMiddlewareConstants.RetryAfterTimeSpanFormat, CultureInfo.InvariantCulture)));
     }
 
     private sealed record RateLimitRejectedResponse(int StatusCode, string Error, string Reason, string RetryAfter);

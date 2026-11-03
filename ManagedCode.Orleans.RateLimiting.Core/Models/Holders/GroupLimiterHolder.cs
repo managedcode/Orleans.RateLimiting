@@ -13,7 +13,7 @@ public class GroupLimiterHolder : IAsyncDisposable
 
     private readonly List<LimiterEntry> _holders = [];
     private readonly object _lifecycleSync = new();
-    private Task<OrleansRateLimitLease?>? _acquisition;
+    private Task? _acquisitionSettled;
     private Task? _disposal;
     private bool _acquired;
     private bool _disposed;
@@ -29,7 +29,7 @@ public class GroupLimiterHolder : IAsyncDisposable
         lock (_lifecycleSync)
         {
             _disposed = true;
-            disposal = _disposal ??= DisposeCoreAsync(_acquisition);
+            disposal = _disposal ??= DisposeCoreAsync(_acquisitionSettled);
         }
         await disposal;
         GC.SuppressFinalize(this);
@@ -54,22 +54,7 @@ public class GroupLimiterHolder : IAsyncDisposable
 
     public async Task<OrleansRateLimitLease?> AcquireAsync(CancellationToken cancellationToken)
     {
-        Task<OrleansRateLimitLease?> acquisition;
-        lock (_lifecycleSync)
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_acquired)
-                throw new InvalidOperationException(AlreadyAcquiredMessage);
-
-            // Reserve the group before the first asynchronous grain response can arrive.
-            _acquired = true;
-            acquisition = _acquisition = AcquireCoreAsync(cancellationToken);
-        }
-        return await acquisition;
-    }
-
-    private async Task<OrleansRateLimitLease?> AcquireCoreAsync(CancellationToken cancellationToken)
-    {
+        var settlement = ReserveAcquisition();
         try
         {
             for (var index = 0; index < _holders.Count; index++)
@@ -96,19 +81,32 @@ public class GroupLimiterHolder : IAsyncDisposable
             await ReleaseAcquiredAsync();
             throw;
         }
+        finally
+        {
+            settlement.SetResult();
+        }
     }
 
-    private async Task DisposeCoreAsync(Task<OrleansRateLimitLease?>? acquisition)
+    private TaskCompletionSource ReserveAcquisition()
     {
-        try
+        lock (_lifecycleSync)
         {
-            if (acquisition is not null)
-                await acquisition;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_acquired)
+                throw new InvalidOperationException(AlreadyAcquiredMessage);
+
+            // A holder can request disposal synchronously when invoked.
+            var settlement = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _acquired = true;
+            _acquisitionSettled = settlement.Task;
+            return settlement;
         }
-        catch
-        {
-            // AcquireAsync delivers the original failure; disposal must still release leases.
-        }
+    }
+
+    private async Task DisposeCoreAsync(Task? acquisition)
+    {
+        if (acquisition is not null)
+            await acquisition;
         await ReleaseAcquiredAsync();
     }
 
