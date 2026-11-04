@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -59,7 +58,7 @@ public sealed class OrleansRequestRateLimitingMiddleware
             Role = user.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Role)?.Value,
             IpAddress = httpContext.Request.GetClientIpAddress(),
             Resource = path,
-            Metadata = new Dictionary<string, string>
+            Metadata =
             {
                 [RateLimitMiddlewareConstants.MethodMetadataKey] = httpContext.Request.Method,
                 [RateLimitMiddlewareConstants.PathMetadataKey] = path

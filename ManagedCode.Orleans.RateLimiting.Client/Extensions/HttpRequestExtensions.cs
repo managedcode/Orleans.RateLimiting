@@ -1,13 +1,12 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 
 namespace ManagedCode.Orleans.RateLimiting.Client.Extensions;
 
 public static class HttpRequestExtensions
 {
     private const char CsvSeparator = ',';
+    private const int SeparatorNotFound = -1;
     private const string UnknownIpAddress = "unknown-ip";
 
     /// <summary>
@@ -47,27 +46,21 @@ public static class HttpRequestExtensions
 
     private static string GetHeaderValueAs(HttpRequest request, string headerName)
     {
-        StringValues values;
+        if (request.Headers is not { } headers || !headers.TryGetValue(headerName, out var values))
+            return string.Empty;
 
-        if (request.Headers?.TryGetValue(headerName, out values) ?? false)
+        foreach (var value in values)
         {
-            var rawValues = values.ToString(); // writes out as Csv when there are multiple.
+            // StringValues joins only nonempty entries. Only the first entry can supply the first hop.
+            if (string.IsNullOrEmpty(value))
+                continue;
 
-            if (!string.IsNullOrWhiteSpace(rawValues))
-            {
-                var value = SplitCsv(rawValues).FirstOrDefault();
-                return value ?? string.Empty;
-            }
+            var separator = value.IndexOf(CsvSeparator);
+            return separator == SeparatorNotFound
+                ? value.Trim()
+                : value.AsSpan()[..separator].Trim().ToString();
         }
 
         return string.Empty;
-    }
-
-    private static IEnumerable<string> SplitCsv(string? csvList)
-    {
-        if (string.IsNullOrWhiteSpace(csvList))
-            return Enumerable.Empty<string>();
-
-        return csvList.TrimEnd(CsvSeparator).Split(CsvSeparator).Select(s => s.Trim());
     }
 }

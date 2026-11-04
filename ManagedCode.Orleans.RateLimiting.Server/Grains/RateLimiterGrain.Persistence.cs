@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using ManagedCode.Orleans.RateLimiting.Server.Diagnostics;
 using System.Threading;
 using System.Threading.RateLimiting;
@@ -91,7 +90,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         if (!_stateDirty)
             return;
 
-        var started = Stopwatch.GetTimestamp();
+        var clock = Clock;
+        var started = clock.GetTimestamp();
         var outcome = RateLimiterMetrics.Failed;
         try
         {
@@ -106,7 +106,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         }
         finally
         {
-            RateLimiterMetrics.RecordStateWrite<TLimiter>(outcome, started);
+            RateLimiterMetrics.RecordStateWrite<TLimiter>(outcome, clock, started);
         }
     }
 

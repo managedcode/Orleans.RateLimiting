@@ -14,6 +14,23 @@ public class GroupLeaseSecurityTests(TestClusterApplication testApp)
     private const int QueueLimit = 0;
 
     [Test]
+    public async Task EmptyGroupPreservesCancellationAndLifecycle()
+    {
+        await using var group = new GroupLimiterHolder();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() => group.AcquireAsync(cancellation.Token));
+        (await group.AcquireAsync()).ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => group.AddLimiter(null));
+        await Should.ThrowAsync<InvalidOperationException>(() => group.AcquireAsync());
+
+        await group.DisposeAsync();
+        await group.DisposeAsync();
+        await Should.ThrowAsync<ObjectDisposedException>(() => group.AcquireAsync());
+    }
+
+    [Test]
     public async Task ExceptionDuringGroupAcquisitionImmediatelyReturnsEarlierConcurrencyPermits()
     {
         var limiter = CreateLimiter();

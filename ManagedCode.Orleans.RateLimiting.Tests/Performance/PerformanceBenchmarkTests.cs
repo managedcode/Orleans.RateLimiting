@@ -28,7 +28,7 @@ public class PerformanceBenchmarkTests(PerformanceCluster app)
             RuntimeInformation.OSDescription,
             RuntimeInformation.ProcessArchitecture,
             Environment.ProcessorCount,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = app.Clock.GetUtcNow(),
             Topology = TopologyDescription,
             WarmWorkload = ShouldWarmWorkload(),
             MetadataPayload = PerformancePayload.Create(),

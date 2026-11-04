@@ -20,6 +20,22 @@ public class ObservabilityTests(TestClusterApplication testApp)
     private const string Algorithm = "concurrency";
 
     [Test]
+    [Arguments(MetricCapture.WriteCounter)]
+    [Arguments(MetricCapture.WriteDuration)]
+    public async Task StateWritesRecordWhenOnlyOneInstrumentIsEnabled(string instrumentName)
+    {
+        using var capture = new MetricCapture(instrumentName);
+        var holder = testApp.Cluster.Client.GetConcurrencyLimiter(Guid.NewGuid().ToString(),
+            new ConcurrencyLimiterOptions { PermitLimit = PermitCount });
+
+        await using var lease = await holder.AcquireAndConfigureAsync();
+
+        capture.Measurements.ShouldContain(item => item.Name == instrumentName
+            && Equals(item.Tags[MetricCapture.OutcomeTag], Written)
+            && Equals(item.Tags[MetricCapture.AlgorithmTag], Algorithm));
+    }
+
+    [Test]
     public async Task MetricsCoverResultsCancellationAndWritesWithoutPartitionIdentifiers()
     {
         using var capture = new MetricCapture();

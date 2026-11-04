@@ -1,3 +1,4 @@
+using System;
 using Orleans;
 
 namespace ManagedCode.Orleans.RateLimiting.Core.Models.Orchestration;
@@ -25,10 +26,13 @@ public sealed class RateLimitRequestPartition
     [Id(2)]
     public string? ConfigurationName { get; init; }
 
-    public override string ToString()
+    public override string ToString() => FormatKey(Kind, Key, ConfigurationName);
+
+    internal static string FormatKey(RateLimitPartitionKind kind, string key, string? configurationName)
     {
-        return ConfigurationName is null
-            ? RateLimitPartitionKeyFormatter.Join(Kind, Key)
-            : RateLimitPartitionKeyFormatter.Join(Kind, ConfigurationName, Key);
+        var kindName = Enum.GetName(kind) ?? kind.ToString();
+        return configurationName is null
+            ? RateLimitPartitionKeyFormatter.Join(kindName, key)
+            : RateLimitPartitionKeyFormatter.Join(kindName, configurationName, key);
     }
 }

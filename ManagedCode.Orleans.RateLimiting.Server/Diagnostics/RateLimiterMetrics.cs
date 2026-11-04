@@ -36,21 +36,24 @@ internal static class RateLimiterMetrics
 
     internal static void ChangeActivePermits(int permits) => ActivePermits.Add(permits);
 
-    internal static void RecordAcquisition<TLimiter>(string outcome, long started)
+    internal static void RecordAcquisition<TLimiter>(string outcome, TimeProvider clock, long started)
     {
         if (!Acquisitions.Enabled && !AcquisitionDuration.Enabled)
             return;
 
         var tags = CreateTags<TLimiter>(outcome);
         Acquisitions.Add(SingleEvent, tags);
-        AcquisitionDuration.Record(Stopwatch.GetElapsedTime(started).TotalSeconds, tags);
+        AcquisitionDuration.Record(clock.GetElapsedTime(started).TotalSeconds, tags);
     }
 
-    internal static void RecordStateWrite<TLimiter>(string outcome, long started)
+    internal static void RecordStateWrite<TLimiter>(string outcome, TimeProvider clock, long started)
     {
+        if (!StateWrites.Enabled && !StateWriteDuration.Enabled)
+            return;
+
         var tags = CreateTags<TLimiter>(outcome);
         StateWrites.Add(SingleEvent, tags);
-        StateWriteDuration.Record(Stopwatch.GetElapsedTime(started).TotalSeconds, tags);
+        StateWriteDuration.Record(clock.GetElapsedTime(started).TotalSeconds, tags);
     }
 
     private static TagList CreateTags<TLimiter>(string outcome)

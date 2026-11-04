@@ -3,6 +3,7 @@ using ManagedCode.Orleans.RateLimiting.Server.Grains;
 using ManagedCode.Orleans.RateLimiting.Server.Options;
 using ManagedCode.Orleans.RateLimiting.Tests.Cluster;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using OptionsFactory = Microsoft.Extensions.Options.Options;
 using Orleans.Runtime;
 
@@ -99,6 +100,7 @@ public class PersistenceFailureTests
             OptionsFactory.Create(new RateLimiterPersistenceOptions { StateFlushPeriod = TimeSpan.Zero }), state)
     {
         public bool FailReplacement { get; set; }
+        protected override TimeProvider Clock { get; } = new FakeTimeProvider(DateTimeOffset.UnixEpoch);
 
         protected override ConcurrencyLimiter CreateDefaultRateLimiter()
         {

@@ -31,6 +31,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
     private readonly TimeSpan _stateFlushPeriod;
     private readonly IPersistentState<RateLimiterGrainState<TOptions>> _state;
     private readonly SemaphoreSlim _stateLock = new(SingleSemaphoreSlot, SingleSemaphoreSlot);
+    private TimeProvider? _clock;
     private int _activeAcquireCount;
     private bool _configurationLockDisposed;
     private TaskCompletionSource? _noActiveAcquires;
@@ -56,7 +57,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
 
     protected TOptions Options => _options;
 
-    protected virtual TimeProvider Clock => GrainContext?.ActivationServices.GetService<TimeProvider>() ?? TimeProvider.System;
+    protected virtual TimeProvider Clock
+        => _clock ??= GrainContext.ActivationServices.GetRequiredKeyedService<TimeProvider>(TimeProviderNames.Grains);
 
     protected TLimiter RateLimiter { get; private set; }
 

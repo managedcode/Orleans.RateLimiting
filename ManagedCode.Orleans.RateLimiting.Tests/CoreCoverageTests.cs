@@ -163,6 +163,17 @@ public class CoreCoverageTests
     }
 
     [Test]
+    public void ShortPartitionKeysPreserveEmptyPartsAndEscapeLiteralPercentSigns()
+    {
+        const string rawKey = "tenant:user%3A";
+        const string twoPartKey = ":tenant%3Auser%253A";
+        const string threePartKey = ":tenant%3Auser%253A:";
+
+        RateLimitPartitionKeyFormatter.Join(null, rawKey).ShouldBe(twoPartKey);
+        RateLimitPartitionKeyFormatter.Join(null, rawKey, null).ShouldBe(threePartKey);
+    }
+
+    [Test]
     public async Task DefaultRequestOrchestratorCreatesLimitersForConfiguredPartitions()
     {
         var options = new RateLimitRequestOrchestrationOptions()

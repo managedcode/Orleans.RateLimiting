@@ -40,6 +40,13 @@ public class OrleansRateLimitLease : IAsyncDisposable
             _releaseGrain = releaseGrain;
     }
 
+    internal OrleansRateLimitLease(GrainId grainId, IGrainFactory grainFactory)
+    {
+        _grainId = grainId;
+        _metadata = TimeoutMetadata.Value;
+        GrainFactory = grainFactory;
+    }
+
     public IGrainFactory GrainFactory { get; init; }
 
     public string Reason =>
@@ -104,5 +111,13 @@ public class OrleansRateLimitLease : IAsyncDisposable
         var result = _metadata.TryGetValue(metadataName, out var value);
         metadata = value;
         return result;
+    }
+
+    private static class TimeoutMetadata
+    {
+        internal static readonly FrozenDictionary<string, string?> Value = new Dictionary<string, string?>
+        {
+            [RateLimitMetadataNames.ReasonPhrase] = RateLimitMetadataNames.LeaseNotAcquiredReason
+        }.ToFrozenDictionary();
     }
 }

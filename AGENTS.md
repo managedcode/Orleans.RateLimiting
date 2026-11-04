@@ -77,6 +77,7 @@ Skill-management rules:
 .NET-specific rules:
 
 - The target framework is configured centrally in `Directory.Build.props`.
+- Get application wall-clock time, monotonic timestamps, and deadline timers from the DI-provided `TimeProvider`. Grains use the Orleans grain-area provider shared by their runtime timers.
 - Package versions are configured centrally in `Directory.Packages.props`.
 - Packing validates public API compatibility against published package version `10.1.0` via `PackageValidationBaselineVersion`. Keep the baseline on the previous stable release and do not suppress compatibility failures without explicit review. CI runs pack as a compatibility gate before tests.
 - Published Core and Server RPC identities are guarded by the Orleans contract analyzer and checked-in project-local `OrleansContracts.txt` manifests. Versioning diagnostics are errors in the root `.editorconfig`.

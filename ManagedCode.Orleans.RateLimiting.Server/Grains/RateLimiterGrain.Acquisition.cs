@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using ManagedCode.Orleans.RateLimiting.Server.Diagnostics;
 using System.Threading;
 using System.Threading.RateLimiting;
@@ -41,7 +40,8 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
 
     private async Task<RateLimitLeaseMetadata> AcquireAndPersistAsync(int permitCount, AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
-        var started = Stopwatch.GetTimestamp();
+        var clock = Clock;
+        var started = clock.GetTimestamp();
         var outcome = RateLimiterMetrics.Failed;
         try
         {
@@ -56,7 +56,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         }
         finally
         {
-            RateLimiterMetrics.RecordAcquisition<TLimiter>(outcome, started);
+            RateLimiterMetrics.RecordAcquisition<TLimiter>(outcome, clock, started);
         }
     }
 
@@ -114,8 +114,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
 
     private async Task EnterAcquireAsync(AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
-        if (!await _configurationLock.WaitAsync(deadline.Remaining, cancellationToken))
-            throw AcquisitionDeadline.CreateException();
+        await WaitForConfigurationLockAsync(deadline, cancellationToken);
         try
         {
             lock (_limiterLifetimeSync)
@@ -131,8 +130,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
 
     private async Task EnterAcquireAsync(TOptions options, Func<TOptions, bool> optionsChanged, int permitCount, AcquisitionDeadline deadline, CancellationToken cancellationToken)
     {
-        if (!await _configurationLock.WaitAsync(deadline.Remaining, cancellationToken))
-            throw AcquisitionDeadline.CreateException();
+        await WaitForConfigurationLockAsync(deadline, cancellationToken);
         try
         {
             deadline.ThrowIfExpired();

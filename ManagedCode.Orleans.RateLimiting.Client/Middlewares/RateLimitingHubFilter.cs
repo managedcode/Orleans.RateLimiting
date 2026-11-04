@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Client.Options;
@@ -15,6 +14,10 @@ namespace ManagedCode.Orleans.RateLimiting.Client.Middlewares;
 
 public class RateLimitingHubFilter : IHubFilter
 {
+    private const int MetadataEntryCount = 4;
+    private static readonly Action<ILogger, string, string, Exception?> LogRateLimited =
+        LoggerMessage.Define<string, string>(LogLevel.Information, default, RateLimitMiddlewareConstants.SignalRRateLimitedLogMessage);
+
     private readonly ILogger<RateLimitingHubFilter> _logger;
     private readonly IRateLimitRequestOrchestrator _orchestrator;
     private readonly SignalRRateLimitingOptions _options;
@@ -35,8 +38,9 @@ public class RateLimitingHubFilter : IHubFilter
         var lease = await holder.AcquireAsync(invocationContext.Context.ConnectionAborted);
         if (lease is not null)
         {
-            _logger.LogInformation(RateLimitMiddlewareConstants.SignalRRateLimitedLogMessage, invocationContext.HubMethodName, lease.Reason);
-            throw new RateLimitExceededException(lease.Reason, lease.RetryAfter);
+            var reason = lease.Reason;
+            LogRateLimited(_logger, invocationContext.HubMethodName, reason, null);
+            throw new RateLimitExceededException(reason, lease.RetryAfter);
         }
 
         return await next(invocationContext);
@@ -61,9 +65,12 @@ public class RateLimitingHubFilter : IHubFilter
                       ?? user?.Identity?.Name
                       ?? _options.AnonymousUserKey;
 
-        return new RateLimitRequestContext
+        var hubType = invocationContext.Hub.GetType();
+        var hubName = hubType.FullName;
+        var methodName = invocationContext.HubMethodName;
+        var context = new RateLimitRequestContext
         {
-            OperationName = invocationContext.HubMethodName,
+            OperationName = methodName,
             UserId = userKey,
             GroupId = user?.FindFirstValue(RateLimitMiddlewareConstants.GroupClaimType)
                       ?? user?.FindFirstValue(RateLimitMiddlewareConstants.GroupsClaimType)
@@ -72,18 +79,16 @@ public class RateLimitingHubFilter : IHubFilter
                        ?? user?.FindFirstValue(RateLimitMiddlewareConstants.ShortTenantIdClaimType),
             Role = user?.FindFirstValue(ClaimTypes.Role),
             IpAddress = httpContext?.Request.GetClientIpAddress(),
-            Resource = string.Concat(
-                invocationContext.Hub.GetType().FullName,
-                RateLimitMiddlewareConstants.ResourceSeparator,
-                invocationContext.HubMethodName),
-            Metadata = new Dictionary<string, string>
-            {
-                [RateLimitMiddlewareConstants.HubMetadataKey] = invocationContext.Hub.GetType().FullName ?? invocationContext.Hub.GetType().Name,
-                [RateLimitMiddlewareConstants.MethodMetadataKey] = invocationContext.HubMethodName,
-                [RateLimitMiddlewareConstants.ConfigurationMetadataKey] = _options.ConfigurationName,
-                [RateLimitMiddlewareConstants.PartitionMetadataKey] = _options.PartitionKind.ToString()
-            },
+            Resource = string.Concat(hubName, RateLimitMiddlewareConstants.ResourceSeparator, methodName),
             PolicyName = _options.PolicyName
         };
+
+        var metadata = context.Metadata;
+        metadata.EnsureCapacity(MetadataEntryCount);
+        metadata[RateLimitMiddlewareConstants.HubMetadataKey] = hubName ?? hubType.Name;
+        metadata[RateLimitMiddlewareConstants.MethodMetadataKey] = methodName;
+        metadata[RateLimitMiddlewareConstants.ConfigurationMetadataKey] = _options.ConfigurationName;
+        metadata[RateLimitMiddlewareConstants.PartitionMetadataKey] = _options.PartitionKind.ToString();
+        return context;
     }
 }

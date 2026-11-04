@@ -7,18 +7,20 @@ internal sealed class MetricCapture : IDisposable
 {
     internal const string MeterName = "ManagedCode.Orleans.RateLimiting";
     internal const string AcquisitionCounter = "rate_limiting.acquisitions";
+    internal const string AcquisitionDuration = "rate_limiting.acquire.duration";
     internal const string ActivePermits = "rate_limiting.concurrency.active_permits";
     internal const string WriteCounter = "rate_limiting.state.writes";
+    internal const string WriteDuration = "rate_limiting.state.write.duration";
     internal const string AlgorithmTag = "algorithm";
     internal const string OutcomeTag = "outcome";
     private readonly MeterListener _listener = new();
     internal ConcurrentQueue<Measurement> Measurements { get; } = new();
 
-    internal MetricCapture()
+    internal MetricCapture(string? instrumentName = null)
     {
         _listener.InstrumentPublished = (instrument, listener) =>
         {
-            if (instrument.Meter.Name == MeterName)
+            if (instrument.Meter.Name == MeterName && (instrumentName is null || instrument.Name == instrumentName))
                 listener.EnableMeasurementEvents(instrument);
         };
         _listener.SetMeasurementEventCallback<long>((instrument, value, tags, _) => Capture(instrument, value, tags));

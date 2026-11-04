@@ -45,7 +45,7 @@ public abstract partial class BaseRateLimiterHolder<TGrain, TOption>
         catch (TimeoutException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return new OrleansRateLimitLease(new RateLimitLeaseMetadata(_grain.GetGrainId()), _grainFactory);
+            return new OrleansRateLimitLease(_grain.GetGrainId(), _grainFactory);
         }
     }
 

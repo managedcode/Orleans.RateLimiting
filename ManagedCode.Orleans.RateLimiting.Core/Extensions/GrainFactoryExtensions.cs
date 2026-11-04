@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.RateLimiting;
 using ManagedCode.Orleans.RateLimiting.Core.Interfaces;
 using ManagedCode.Orleans.RateLimiting.Core.Models;
@@ -25,19 +25,23 @@ public static class GrainFactoryExtensions
 
     public static ILimiterHolder? GetRateLimiterByConfig(this IGrainFactory factory, string key, string configurationName, IEnumerable<RateLimiterConfig> configs)
     {
-        var option = configs.FirstOrDefault(f => f.NameEquals(configurationName));
-        if (option is null)
-            return null;
-
-        return option.Configuration switch
+        ArgumentNullException.ThrowIfNull(configs);
+        foreach (var config in configs)
         {
-            FixedWindowRateLimiterOptions options => factory.GetFixedWindowRateLimiter(key, options),
-            ConcurrencyLimiterOptions options => factory.GetConcurrencyLimiter(key, options),
-            SlidingWindowRateLimiterOptions options => factory.GetSlidingWindowRateLimiter(key, options),
-            TokenBucketRateLimiterOptions options => factory.GetTokenBucketRateLimiter(key, options),
+            if (!config.NameEquals(configurationName))
+                continue;
 
-            _ => null
-        };
+            return config.Configuration switch
+            {
+                FixedWindowRateLimiterOptions options => factory.GetFixedWindowRateLimiter(key, options),
+                ConcurrencyLimiterOptions options => factory.GetConcurrencyLimiter(key, options),
+                SlidingWindowRateLimiterOptions options => factory.GetSlidingWindowRateLimiter(key, options),
+                TokenBucketRateLimiterOptions options => factory.GetTokenBucketRateLimiter(key, options),
+
+                _ => null
+            };
+        }
+        return null;
     }
 
     public static FixedWindowRateLimiterHolder GetFixedWindowRateLimiter(this IGrainFactory factory, string key)

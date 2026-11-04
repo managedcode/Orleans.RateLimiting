@@ -16,8 +16,12 @@ internal static class RateLimitResponseWriter
 
         // Replace the response body without removing headers set by the host.
         response.ContentLength = null;
-        if (response.Body.CanSeek)
-            response.Body.SetLength(default);
+        var body = response.Body;
+        if (body.CanSeek)
+        {
+            body.SetLength(default);
+            body.Position = default;
+        }
 
         response.StatusCode = StatusCodes.Status429TooManyRequests;
         var retryAfter = lease.RetryAfter;

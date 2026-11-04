@@ -54,6 +54,13 @@ public class RpcTimeoutTests(TimeoutTestCluster app)
             await WaitForQueueAsync(holder, PermitCount);
             await using var rejected = await pending.WaitAsync(Deadline);
             rejected.IsAcquired.ShouldBeFalse();
+            rejected.Reason.ShouldBe(RateLimitMetadataNames.LeaseNotAcquiredReason);
+            rejected.RetryAfter.ShouldBe(TimeSpan.Zero);
+            rejected.MetadataNames.Single().ShouldBe(RateLimitMetadataNames.ReasonPhrase);
+            rejected.GrainFactory.ShouldBeSameAs(app.Cluster.Client);
+            var releaseCalls = app.RpcCounter.ReleaseCalls;
+            await rejected.DisposeAsync();
+            app.RpcCounter.ReleaseCalls.ShouldBe(releaseCalls);
             await WaitForQueueAsync(holder, NoQueuedRequests);
         }
         finally

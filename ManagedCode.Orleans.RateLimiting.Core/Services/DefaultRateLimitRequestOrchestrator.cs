@@ -34,12 +34,14 @@ public sealed class DefaultRateLimitRequestOrchestrator : IRateLimitRequestOrche
     public async ValueTask<GroupLimiterHolder> CreateLimiterGroupAsync(RateLimitRequestContext context, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        cancellationToken.ThrowIfCancellationRequested();
 
         var holder = new GroupLimiterHolder();
 
         foreach (var policy in _policies)
         {
             var rules = await policy.GetRulesAsync(context, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (var rule in rules)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -56,6 +58,7 @@ public sealed class DefaultRateLimitRequestOrchestrator : IRateLimitRequestOrche
             throw new RateLimitConfigurationNotFoundException(rule.ConfigurationName);
 
         var key = await _keyResolver.ResolveKeyAsync(context, rule, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(key))
         {
             if (rule.Required)
@@ -64,8 +67,8 @@ public sealed class DefaultRateLimitRequestOrchestrator : IRateLimitRequestOrche
             return;
         }
 
-        var partition = new RateLimitRequestPartition(rule.Kind, key, rule.ConfigurationName);
-        var limiter = _grainFactory.GetRateLimiterByConfig(partition.ToString(), rule.ConfigurationName, _configs);
+        var partitionKey = RateLimitRequestPartition.FormatKey(rule.Kind, key, rule.ConfigurationName);
+        var limiter = _grainFactory.GetRateLimiterByConfig(partitionKey, rule.ConfigurationName, _configs);
 
         if (limiter is null)
             throw new RateLimitConfigurationNotFoundException(rule.ConfigurationName);

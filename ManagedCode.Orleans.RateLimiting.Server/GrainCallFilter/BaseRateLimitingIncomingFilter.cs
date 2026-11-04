@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using ManagedCode.Orleans.RateLimiting.Core.Attributes;
 using ManagedCode.Orleans.RateLimiting.Core.Exceptions;
@@ -43,23 +42,16 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
 
     private (ILimiterHolderWithConfiguration<TOptions>, TOptions?)? IsRateLimiter(IIncomingGrainCallContext context)
     {
-        if (Attribute.IsDefined(context.ImplementationMethod, typeof(TAttribute)))
-        {
-            var attribute = Attribute.GetCustomAttribute(context.ImplementationMethod, typeof(TAttribute));
-            return CreateRateLimiter(context, attribute);
-        }
+        var implementationMethod = context.ImplementationMethod;
+        if (Attribute.GetCustomAttribute(implementationMethod, typeof(TAttribute)) is { } implementationAttribute)
+            return CreateRateLimiter(context, implementationAttribute);
 
-        if (context.InterfaceMethod is { } interfaceMethod && Attribute.IsDefined(interfaceMethod, typeof(TAttribute)))
-            return CreateRateLimiter(context, Attribute.GetCustomAttribute(interfaceMethod, typeof(TAttribute)));
+        if (context.InterfaceMethod is { } interfaceMethod &&
+            Attribute.GetCustomAttribute(interfaceMethod, typeof(TAttribute)) is { } interfaceAttribute)
+            return CreateRateLimiter(context, interfaceAttribute);
 
-        var grainType = context.Grain?.GetType() ?? context.ImplementationMethod.DeclaringType;
-        if (grainType is not null && Attribute.IsDefined(grainType, typeof(TAttribute)))
-        {
-            var attribute = Attribute.GetCustomAttribute(grainType, typeof(TAttribute));
-            return CreateRateLimiter(context, attribute);
-        }
-
-        return null;
+        var grainType = context.Grain?.GetType() ?? implementationMethod.DeclaringType;
+        return grainType is null ? null : CreateRateLimiter(context, Attribute.GetCustomAttribute(grainType, typeof(TAttribute)));
     }
 
     private (ILimiterHolderWithConfiguration<TOptions>, TOptions?)? CreateRateLimiter(IIncomingGrainCallContext context, Attribute? attribute)
@@ -79,9 +71,11 @@ public abstract class BaseRateLimitingIncomingFilter<TAttribute, TOptions> : IIn
 
         if (limiterAttribute.ConfigurationName is not null)
         {
-            var options = RateLimiterConfigs.FirstOrDefault(f => f.NameEquals(limiterAttribute.ConfigurationName) && f.OptionsTypeIs<TOptions>());
-            if (options is not null)
-                return (GetLimiter(RateLimiterPolicyKeys.ForNamedPolicy(key, options.Name)), options.GetLimiterOptions<TOptions>()!);
+            foreach (var config in RateLimiterConfigs)
+            {
+                if (config.NameEquals(limiterAttribute.ConfigurationName) && config.GetLimiterOptions<TOptions>() is { } options)
+                    return (GetLimiter(RateLimiterPolicyKeys.ForNamedPolicy(key, config.Name)), options);
+            }
 
             throw new RateLimitConfigurationNotFoundException(limiterAttribute.ConfigurationName);
         }

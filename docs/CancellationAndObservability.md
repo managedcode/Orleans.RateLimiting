@@ -60,10 +60,11 @@ The library retains its state lock: runtime mutations must still mark their snap
 even if cancellation arrives during that transition. A failed or cancelled write does not
 clear the dirty flag. A failed clear preserves the active runtime and in-memory state.
 
-Snapshots use the activation's registered `TimeProvider`, falling back to system UTC.
-Tests pin Orleans background areas to real time while advancing the grain clock; native
-`System.Threading.RateLimiting` replenishment timers still use their own clock. Token
-restoration bounds elapsed replenishment before multiplication and clamps backwards-clock
+Snapshots, acquisition budgets, and metric durations use the `TimeProvider` resolved
+from activation DI for `TimeProviderNames.Grains`. Orleans grain timers use the same
+registration. Tests pin Orleans background areas to real time while advancing the
+grain clock. Native `System.Threading.RateLimiting` replenishment timers use their own
+clock. Token restoration bounds elapsed replenishment before multiplication and clamps backwards-clock
 snapshots. Aggregate sliding-window snapshots and batched crash durability are unchanged.
 
 ## Metrics

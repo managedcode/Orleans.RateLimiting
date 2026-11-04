@@ -18,6 +18,7 @@ public sealed class PerformanceCluster : IAsyncInitializer, IAsyncDisposable
     private const int GatewayCount = 1;
     private const int PlacementIndex = 0;
     public InProcessTestCluster Cluster { get; private set; } = null!;
+    internal TimeProvider Clock { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {
@@ -27,6 +28,7 @@ public sealed class PerformanceCluster : IAsyncInitializer, IAsyncDisposable
         builder.ConfigureClient(client => client.AddOrleansRateLimiting().Services.Configure<GatewayOptions>(options => options.PreferredGatewayIndex = GatewayIndex));
         Cluster = builder.Build();
         await Cluster.DeployAsync();
+        Clock = Cluster.Silos[PlacementIndex].SiloHost.Services.GetRequiredKeyedService<TimeProvider>(TimeProviderNames.Grains);
         var gateways = await Cluster.Client.ServiceProvider.GetRequiredService<IGatewayListProvider>().GetGateways();
         gateways.Count.ShouldBe(GatewayCount);
         var expected = Cluster.Silos[PlacementIndex].SiloHost.Services.GetRequiredService<ILocalSiloDetails>().GatewayAddress!;

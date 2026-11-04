@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
@@ -8,25 +7,28 @@ internal readonly struct AcquisitionDeadline
 {
     private const string TimeoutMessage = "The rate limiter acquisition deadline expired.";
     private static readonly TimeSpan MaximumWait = TimeSpan.FromMilliseconds(int.MaxValue);
+    private readonly TimeProvider? _clock;
     private readonly TimeSpan _timeout;
     private readonly long _started;
-    internal bool IsEnabled { get; }
+    internal bool IsEnabled => _clock is not null;
 
-    internal AcquisitionDeadline(TimeSpan timeout)
+    internal AcquisitionDeadline(TimeSpan timeout, TimeProvider clock)
     {
-        if (timeout < TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
-            throw new ArgumentOutOfRangeException(nameof(timeout));
+        if (timeout == Timeout.InfiniteTimeSpan)
+            return;
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(timeout, TimeSpan.Zero);
+        _clock = clock;
         _timeout = timeout;
-        _started = Stopwatch.GetTimestamp();
-        IsEnabled = timeout != Timeout.InfiniteTimeSpan;
+        _started = clock.GetTimestamp();
     }
 
-    internal TimeSpan Remaining
+    private TimeSpan Remaining
     {
         get
         {
-            if (!IsEnabled) return Timeout.InfiniteTimeSpan;
-            var remaining = _timeout - Stopwatch.GetElapsedTime(_started);
+            if (_clock is null) return Timeout.InfiniteTimeSpan;
+            var remaining = _timeout - _clock.GetElapsedTime(_started);
             return remaining <= TimeSpan.Zero ? TimeSpan.Zero : remaining < MaximumWait ? remaining : MaximumWait;
         }
     }
@@ -38,11 +40,17 @@ internal readonly struct AcquisitionDeadline
         if (IsExpired) throw CreateException();
     }
 
-    internal CancellationTokenSource CreateCancellationSource(CancellationToken callerToken)
+    internal AcquisitionCancellation CreateCancellation(CancellationToken callerToken)
     {
-        var source = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
-        source.CancelAfter(Remaining);
-        return source;
+        if (_clock is null)
+            return new AcquisitionCancellation(callerToken);
+
+        callerToken.ThrowIfCancellationRequested();
+        var remaining = Remaining;
+        if (remaining == TimeSpan.Zero)
+            throw CreateException();
+
+        return new AcquisitionCancellation(new CancellationTokenSource(remaining, _clock), callerToken);
     }
 
     internal static TimeoutException CreateException() => new(TimeoutMessage);

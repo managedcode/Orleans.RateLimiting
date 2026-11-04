@@ -166,8 +166,9 @@ HTTP request and SignalR connection cancellation flows through optional holder a
 grain capabilities into native limiter queues. Original RPCs remain available.
 Partial groups release owned concurrency leases even when cancellation arrives late.
 Storage timer/shutdown writes receive cancellation tokens, failed writes remain dirty,
-and failed clears preserve the runtime limiter. Snapshot time uses the activation's
-`TimeProvider`. Metrics expose bounded algorithm/outcome tags and an aggregate active
+and failed clears preserve the runtime limiter. Snapshots, acquisition deadlines,
+and metric durations use the grain-area `TimeProvider` from activation DI.
+Metrics expose bounded algorithm/outcome tags and an aggregate active
 concurrency-permit count. See [cancellation and observability](CancellationAndObservability.md)
 for the sequence diagram, deployment order, metric names and test boundaries.
 
