@@ -14,6 +14,25 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
     where TLimiter : RateLimiter
     where TOptions : class
 {
+    private const int UsageObservationTick = 1;
+
+    private RateLimiterUsageSnapshot ObserveUsage(RateLimiterGrainState<TOptions> state)
+    {
+        var observedAtUtc = state.UpdatedAtUtc > state.LastUsageObservedAtUtc
+            ? state.UpdatedAtUtc
+            : state.LastUsageObservedAtUtc.AddTicks(UsageObservationTick);
+        state.LastUsageObservedAtUtc = observedAtUtc;
+
+        return new RateLimiterUsageSnapshot
+        {
+            TotalSuccessfulLeases = state.TotalSuccessfulLeases,
+            TotalFailedLeases = state.TotalFailedLeases,
+            CurrentAvailablePermits = state.CurrentAvailablePermits,
+            PermitLimit = PermitLimit,
+            ObservedAtUtc = observedAtUtc
+        };
+    }
+
     private void AddActiveLeaseState(RateLimiterGrainState<TOptions> state, Guid leaseId, int permitCount)
     {
         if (!TracksActiveLeaseState)

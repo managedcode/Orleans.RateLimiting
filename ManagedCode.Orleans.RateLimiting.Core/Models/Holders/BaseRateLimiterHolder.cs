@@ -63,6 +63,11 @@ public abstract partial class BaseRateLimiterHolder<TGrain, TOption> : ILimiterH
         return _grain.ConfigureAsync(options);
     }
 
+    public ValueTask<RateLimiterUsageSnapshot> ConfigureAndGetUsageAsync(TOption options)
+    {
+        return _grain.AsReference<IRateLimiterUsageGrain<TOption>>().ConfigureAndGetUsageAsync(options);
+    }
+
     public ValueTask<TOption> GetConfiguration()
     {
         return _grain.GetConfiguration();

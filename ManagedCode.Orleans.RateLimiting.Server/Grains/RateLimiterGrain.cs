@@ -14,7 +14,7 @@ using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.RateLimiting.Server.Grains;
 
-public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDisposable, ICancellableRateLimiterGrain, IBoundedRateLimiterGrain
+public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDisposable, ICancellableRateLimiterGrain, IBoundedRateLimiterGrain, IRateLimiterUsageGrain<TOptions>
     where TLimiter : RateLimiter
     where TOptions : class
 {
@@ -119,11 +119,16 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions> : Grain, IDis
 
     public async ValueTask ConfigureAsync(TOptions options)
     {
+        await ConfigureAndGetUsageAsync(options);
+    }
+
+    public async ValueTask<RateLimiterUsageSnapshot> ConfigureAndGetUsageAsync(TOptions options)
+    {
         await _configurationLock.WaitAsync();
         try
         {
             await WaitForActiveAcquiresAsync();
-            await ConfigureLimiterAsync(options);
+            return await ConfigureLimiterAsync(options);
         }
         finally
         {

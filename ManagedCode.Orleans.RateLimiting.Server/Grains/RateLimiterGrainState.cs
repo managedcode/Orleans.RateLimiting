@@ -15,6 +15,7 @@ public sealed class RateLimiterGrainState<TOptions>
     private const int TotalFailedLeasesMemberId = 5;
     private const int UpdatedAtUtcMemberId = 6;
     private const int ActiveLeasesMemberId = 7;
+    private const int LastUsageObservedAtUtcMemberId = 8;
 
     [Id(HasConfigurationMemberId)]
     public bool HasConfiguration { get; set; }
@@ -39,4 +40,7 @@ public sealed class RateLimiterGrainState<TOptions>
 
     [Id(ActiveLeasesMemberId)]
     public List<RateLimiterLeaseState> ActiveLeases { get; set; } = [];
+
+    [Id(LastUsageObservedAtUtcMemberId)]
+    public DateTimeOffset LastUsageObservedAtUtc { get; set; }
 }

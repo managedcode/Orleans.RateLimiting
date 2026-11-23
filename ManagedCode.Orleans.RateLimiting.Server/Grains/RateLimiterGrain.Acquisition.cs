@@ -75,7 +75,7 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         if (!lease.IsAcquired)
             return await PersistRejectedLeaseAsync(lease, metadata);
 
-        await PersistAcquiredLeaseAsync(leaseId, lease, permitCount);
+        await PersistAcquiredLeaseAsync(leaseId, lease, permitCount, metadata);
         if (cancellationToken.IsCancellationRequested || deadline.IsExpired)
         {
             await ReleaseLease(leaseId);
@@ -92,18 +92,20 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
         {
             state.TotalFailedLeases++;
             CaptureRuntimeSnapshot(state);
+            metadata.Usage = ObserveUsage(state);
         });
 
         return metadata;
     }
 
-    private async Task PersistAcquiredLeaseAsync(Guid leaseId, RateLimitLease lease, int permitCount)
+    private async Task PersistAcquiredLeaseAsync(Guid leaseId, RateLimitLease lease, int permitCount, RateLimitLeaseMetadata metadata)
     {
         await MutateStateAsync(state =>
         {
             state.TotalSuccessfulLeases++;
             AddActiveLeaseState(state, leaseId, permitCount);
             CaptureRuntimeSnapshot(state);
+            metadata.Usage = ObserveUsage(state);
         });
 
         if (RequiresLeaseRelease)

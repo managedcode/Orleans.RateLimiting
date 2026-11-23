@@ -29,6 +29,7 @@ public class OrleansRateLimitLease : IAsyncDisposable
         _isReleaseOptional = metadata.IsReleaseOptional;
         _grainId = metadata.GrainId;
         IsAcquired = metadata.IsAcquired;
+        Usage = metadata.Usage;
         _metadata = metadata.Metadata is [] ? FrozenDictionary<string, string?>.Empty : metadata.Metadata.ToDictionary(k => k.Key, v => v.Value?.ToString());
         GrainFactory = grainFactory;
     }
@@ -58,6 +59,9 @@ public class OrleansRateLimitLease : IAsyncDisposable
             : TimeSpan.Zero;
 
     public bool IsAcquired { get; init; }
+
+    /// <summary>Usage captured with the decision. A local timeout has no server observation.</summary>
+    public RateLimiterUsageSnapshot? Usage { get; }
 
     public IEnumerable<string> MetadataNames => _metadata.Keys;
 

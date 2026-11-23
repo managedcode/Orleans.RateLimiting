@@ -11,6 +11,7 @@ namespace ManagedCode.Orleans.RateLimiting.Core.Models;
 public class RateLimitLeaseMetadata
 {
     private const int ReleaseOptionalMemberId = 4;
+    private const int UsageMemberId = 5;
 
     public RateLimitLeaseMetadata(Guid leaseId, GrainId grainId, RateLimitLease lease)
     {
@@ -43,4 +44,8 @@ public class RateLimitLeaseMetadata
 
     [Id(3)]
     public KeyValuePair<string, object?>[] Metadata { get; set; }
+
+    /// <summary>Usage captured with the decision, when the server returned one.</summary>
+    [Id(UsageMemberId)]
+    public RateLimiterUsageSnapshot? Usage { get; set; }
 }

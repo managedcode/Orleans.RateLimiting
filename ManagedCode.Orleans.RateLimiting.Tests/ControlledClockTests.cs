@@ -17,6 +17,7 @@ public class ControlledClockTests
     private const string DeadlineMessage = "The rate limiter acquisition deadline expired.";
     private const short SiloCount = 1;
     private const int PermitCount = 1;
+    private const int ManagementGrainKey = 0;
     private const int AdvanceMilliseconds = 100;
     private const int PollMilliseconds = 10;
     private const int TimeoutSeconds = 10;
@@ -39,6 +40,51 @@ public class ControlledClockTests
         clock.Advance(Advance);
         await holder.ResetAsync();
         storage.SnapshotTimes.Last().ShouldBe(clock.GetUtcNow());
+    }
+
+    [Test]
+    public async Task UsageObservationsStayOrderedAcrossRejectionReactivationAndConfigurationReset()
+    {
+        var clock = new FakeTimeProvider(DateTimeOffset.UnixEpoch);
+        await using var cluster = CreateClusterBuilder(clock).Build();
+        await cluster.DeployAsync();
+        var holder = cluster.Client.GetFixedWindowRateLimiter(Guid.NewGuid().ToString());
+        var options = new FixedWindowRateLimiterOptions { PermitLimit = PermitCount, Window = AcquisitionBudget };
+
+        var configured = await holder.ConfigureAndGetUsageAsync(options);
+        configured.TotalSuccessfulLeases.ShouldBe(default);
+        configured.PermitLimit.ShouldBe(PermitCount);
+
+        await using var accepted = await holder.AcquireAsync();
+        accepted.IsAcquired.ShouldBeTrue();
+        var acceptedUsage = accepted.Usage.ShouldNotBeNull();
+        acceptedUsage.TotalSuccessfulLeases.ShouldBe(PermitCount);
+        acceptedUsage.CurrentAvailablePermits.ShouldBe(default);
+        acceptedUsage.ObservedAtUtc.ShouldBeGreaterThan(configured.ObservedAtUtc);
+
+        var management = cluster.Client.GetGrain<IManagementGrain>(ManagementGrainKey);
+        await management.ForceActivationCollection(TimeSpan.Zero);
+        await using var rejected = await holder.AcquireAsync();
+        rejected.IsAcquired.ShouldBeFalse();
+        var rejectedUsage = rejected.Usage.ShouldNotBeNull();
+        rejectedUsage.TotalSuccessfulLeases.ShouldBe(PermitCount);
+        rejectedUsage.TotalFailedLeases.ShouldBe(PermitCount);
+        rejectedUsage.ObservedAtUtc.ShouldBeGreaterThan(acceptedUsage.ObservedAtUtc);
+
+        var reset = await holder.ConfigureAndGetUsageAsync(options);
+        reset.TotalSuccessfulLeases.ShouldBe(default);
+        reset.TotalFailedLeases.ShouldBe(default);
+        reset.CurrentAvailablePermits.ShouldBe(PermitCount);
+        reset.ObservedAtUtc.ShouldBeGreaterThan(rejectedUsage.ObservedAtUtc);
+
+        await using var afterReset = await holder.AcquireAsync();
+        afterReset.IsAcquired.ShouldBeTrue();
+        var afterResetUsage = afterReset.Usage.ShouldNotBeNull();
+        afterResetUsage.ObservedAtUtc.ShouldBeGreaterThan(reset.ObservedAtUtc);
+        var statistics = (await holder.GetStatisticsAsync()).ShouldNotBeNull();
+        statistics.TotalSuccessfulLeases.ShouldBe(afterResetUsage.TotalSuccessfulLeases);
+        statistics.TotalFailedLeases.ShouldBe(afterResetUsage.TotalFailedLeases);
+        statistics.CurrentAvailablePermits.ShouldBe(afterResetUsage.CurrentAvailablePermits);
     }
 
     [Test]

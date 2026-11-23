@@ -12,15 +12,21 @@ public abstract partial class RateLimiterGrain<TLimiter, TOptions>
     where TLimiter : RateLimiter
     where TOptions : class
 {
-    private async Task ConfigureLimiterAsync(TOptions options, int? permitCount = null, CancellationToken cancellationToken = default)
+    private async Task<RateLimiterUsageSnapshot> ConfigureLimiterAsync(TOptions options, int? permitCount = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var replacement = CreateValidatedReplacement(options, permitCount);
         DisposeRateLimiter();
         _options = options;
         RateLimiter = replacement;
-        await MutateStateAsync(state => ResetStateForConfiguration(state, options), flushImmediately: true, cancellationToken: cancellationToken);
+        RateLimiterUsageSnapshot usage = default;
+        await MutateStateAsync(state =>
+        {
+            ResetStateForConfiguration(state, options);
+            usage = ObserveUsage(state);
+        }, flushImmediately: true, cancellationToken: cancellationToken);
         _logger.LogInformation(RateLimiterLogMessages.ConfiguredLimiter, typeof(TLimiter).Name, this.GetPrimaryKeyString());
+        return usage;
     }
 
     private TLimiter CreateValidatedReplacement(TOptions options, int? permitCount)

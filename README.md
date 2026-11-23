@@ -188,6 +188,13 @@ await using var lease = await limiter.AcquireAndConfigureAsync();
 lease.ThrowIfNotAcquired();
 ```
 
+The lease carries a nullable `Usage` snapshot with the limiter's successful and failed
+lease totals, available permits, configured limit, and observation time. The
+limiter captures it during the decision. A client-side timeout carries no usage
+observation. Reporting callers can use `ConfigureAndGetUsageAsync(options)` to
+receive the reset observation in the same configuration call. The limiter orders
+these observations even when the clock has not advanced.
+
 Reset the durable quota state through the limiter holder when an administrative workflow needs to clear the current limiter window or active concurrency leases:
 
 ```csharp
